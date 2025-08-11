@@ -15,6 +15,7 @@ import {
   Coffee,
   Zap,
   Star,
+  ChevronUp,
   ChevronDown,
   Filter,
   Eye,
@@ -41,6 +42,7 @@ const ProjectAnalysisDashboard = () => {
   const [fileToPreview, setFileToPreview] = useState(null);
   const [selectedSection, setSelectedSection] = useState(null);
   const [selectedInsightBox, setSelectedInsightBox] = useState(null);
+  const [showAdvancedInsights, setShowAdvancedInsights] = useState(false);
   const location = useLocation();
   const containerRef = useRef(null);
 
@@ -225,7 +227,7 @@ const ProjectAnalysisDashboard = () => {
       </motion.header>
 
       {/* MAIN TWO-COLUMN LAYOUT */}
-      <div className="max-w-7xl mx-auto px- py-12 flex gap-10">
+      <div className="max-w-7xl mx-auto px- py-12 flex gap-10 relative">
         {/* LEFT: Document List (30%) */}
         <motion.div
           variants={itemVariants}
@@ -298,10 +300,7 @@ const ProjectAnalysisDashboard = () => {
                     </div>
                     {/* Eye button for PDF preview */}
                     <button
-                      onClick={e => {
-                        e.stopPropagation();
-                        setFileToPreview(file);
-                      }}
+                      onClick={()=>setFileToPreview(file)}
                       className="ml-2 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
                       aria-label={`Preview ${file.name}`}
                     >
@@ -312,13 +311,13 @@ const ProjectAnalysisDashboard = () => {
               ))}
             </AnimatePresence>
           </div>
-      {/* PDF Preview Modal - Premium implementation */}
-      {fileToPreview && (
+        {/* PDF Preview Modal - Premium implementation */}
+        {fileToPreview && (
         <PdfViewerModal
           file={fileToPreview}
           onClose={() => setFileToPreview(null)}
         />
-      )}
+        )}
         </motion.div>
 
         {/* RIGHT: Intelligence Ranking (70%) */}
@@ -407,8 +406,8 @@ const ProjectAnalysisDashboard = () => {
                     </div>
                   </motion.div>
                 ))}
-      {/* Section Details Modal */}
-      <AnimatePresence>
+        {/* Section Details Modal */}
+        <AnimatePresence>
         {selectedSection && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -473,23 +472,39 @@ const ProjectAnalysisDashboard = () => {
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+        </AnimatePresence>
               </AnimatePresence>
             </div>
             {/* Load more with premium styling */}
-            <motion.div 
+        {/* Toggle Button for Advanced Insights */}
+            <motion.div
               className="text-center py-6"
               whileHover={{ scale: 1.02 }}
             >
-              <button className="inline-flex items-center space-x-2 text-[#DC2626] hover:text-[#B91C1C] font-semibold text-[0.85rem] leading-[1.15rem] transition-colors duration-200 group tracking-wide">
-                <Zap className="w-[0.9rem] h-[0.9rem] group-hover:scale-110 transition-transform duration-200" />
-                <span>Load Advanced Insights</span>
+              <button
+                onClick={() => setShowAdvancedInsights(prevState => !prevState)}
+                className="inline-flex items-center space-x-2 text-[#DC2626] hover:text-[#B91C1C] font-semibold text-[0.85rem] leading-[1.15rem] transition-colors duration-200 group tracking-wide"
+              >
+                {/* Dynamically render the icon */}
+                {showAdvancedInsights ? (
+                  <ChevronUp className="w-[0.9rem] h-[0.9rem] transition-transform duration-200" />
+                ) : (
+                  <ChevronDown className="w-[0.9rem] h-[0.9rem] transition-transform duration-200" />
+                )}
+
+                {/* Dynamically render the text */}
+                <span>
+                  {showAdvancedInsights ? 'Hide Advanced Insights' : 'Show Advanced Insights'}
+                </span>
               </button>
             </motion.div>
           </motion.div>
           {/* Cross-Document Synthesis Section */}
+          {showAdvancedInsights && (
+
           <motion.div 
             variants={itemVariants}
+            transition={{duration:0.5 , ease:'easeInOut'}}
             className="bg-white/90 backdrop-blur-sm rounded-3xl p-8 shadow-xl border border-white/20 mt-8"
           >
             <div className="flex items-center justify-between mb-8">
@@ -562,7 +577,9 @@ const ProjectAnalysisDashboard = () => {
                 <p className="text-base text-[#1A1A1A] opacity-70 font-medium">See creative links, patterns, or inspirations that span multiple documents.</p>
               </motion.div>
             </div>
-
+          </motion.div>
+          )}
+        </div>
             {/* Enhanced Fullscreen Modal for Insight Box - Premium, immersive experience */}
             <AnimatePresence>
               {selectedInsightBox && (
@@ -570,7 +587,7 @@ const ProjectAnalysisDashboard = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="fixed inset-0 z-[9999] bg-gradient-to-br from-[#1A1A1A]/95 to-[#DC2626]/85 backdrop-blur-3xl flex items-center justify-center p-4"
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
                   onClick={() => setSelectedInsightBox(null)}
                 >
                   <motion.div
@@ -1009,9 +1026,8 @@ const ProjectAnalysisDashboard = () => {
                 </motion.div>
               )}
             </AnimatePresence>
-          </motion.div>
-        </div>
       </div>
+
     </motion.div>
   );
 };

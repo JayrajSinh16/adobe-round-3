@@ -277,7 +277,7 @@ const DocumentUploader = () => {
                         className="relative z-10"
                       >
                         {/* Sophisticated loading animation */}
-                        <div className="relative mb-8">
+                        {/* <div className="relative mb-8">
                           <motion.div
                             animate={{ rotate: 360 }}
                             transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
@@ -292,6 +292,23 @@ const DocumentUploader = () => {
                           >
                             <Upload className="w-8 h-8 text-[#DC2626]" />
                           </motion.div>
+                        </div> */}
+                        {/* Sleek Scanner Bar Animation */}
+                        <div className="w-full max-w-xs mx-auto mb-8 h-20 flex items-center justify-center">
+                          <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                            <motion.div
+                              className="bg-gradient-to-r from-[#DC2626] to-[#B91C1C] h-2.5 rounded-full"
+                              initial={{ x: "-100%" }}
+                              animate={{ x: "100%" }}
+                              transition={{
+                                repeat: Infinity,
+                                repeatType: "loop",
+                                duration: 1.5,
+                                ease: "linear",
+                              }}
+                              style={{ width: '50%' }}
+                            />
+                          </div>
                         </div>
                         
                         <h3 className="text-3xl font-bold text-[#1A1A1A] mb-4">

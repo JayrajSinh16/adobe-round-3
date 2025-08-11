@@ -55,7 +55,7 @@ const PersonaSelector = () => {
   }, [selectedPersona, uploadedFiles, navigate, isAnimating]);
 
   const handleCustomPersonaSubmit = useCallback(() => {
-    if (customPersona.title && customPersona.description) {
+    if (customPersona.title) {
       const newPersona = {
         id: `custom-${Date.now()}`,
         title: customPersona.title,
