@@ -174,7 +174,7 @@ const DocumentUploader = () => {
     - Breathing room calculated for cognitive load reduction
     - Mobile-first responsive with breakpoint harmony
     */
-    <div className="min-h-screen bg-gradient-to-br from-[#FAFAF9] to-[#F3F4F6] py-4 px-6">
+    <div className="min-h-screen bg-gradient-to-br from-[#FAFAF9] to-[#F3F4F6] py-4 px-6 ">
       {/* Maximum width container with elegant proportions */}
       <div className="max-w-7xl mx-auto">
         
@@ -209,10 +209,15 @@ const DocumentUploader = () => {
         - Right: File management and stats (40% width)
         - Asymmetrical balance creates visual sophistication
         */}
-        <div className="grid grid-cols-1 xl:grid-cols-5 gap-12 xl:gap-16">
+        <div className={uploadedFiles.length>0? "grid grid-cols-1 xl:grid-cols-5 gap-12 xl:gap-16":
+          "flex justify-center items-start pt-12"
+        }>
           
           {/* LEFT COLUMN - PRIMARY INTERACTION ZONE */}
-          <div className="xl:col-span-3 space-y-12">
+          <motion.div
+            layout
+            transition={{ type: 'spring', stiffness: 200, damping: 30 }}
+            className="xl:col-span-3 space-y-12 w-full max-w-4xl">
             
             {/* 
             PREMIUM UPLOAD ZONE
@@ -397,7 +402,7 @@ const DocumentUploader = () => {
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
+          </motion.div>
 
           {/* RIGHT COLUMN - FILE MANAGEMENT & STATS */}
           <div className="xl:col-span-2 space-y-8">
@@ -409,6 +414,7 @@ const DocumentUploader = () => {
             */}
             {uploadedFiles.length > 0 && (
               <motion.div
+                layout
                 initial={{ opacity: 0, x: 24 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.7, delay: 0.3 }}
