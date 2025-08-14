@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
-import PdfViewerModal from './PDFViewer';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { 
@@ -311,13 +310,6 @@ const ProjectAnalysisDashboard = () => {
               ))}
             </AnimatePresence>
           </div>
-        {/* PDF Preview Modal - Premium implementation */}
-        {fileToPreview && (
-        <PdfViewerModal
-          file={fileToPreview}
-          onClose={() => setFileToPreview(null)}
-        />
-        )}
         </motion.div>
 
         {/* RIGHT: Intelligence Ranking (70%) */}

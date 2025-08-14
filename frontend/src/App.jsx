@@ -4,8 +4,6 @@ import { AnimatePresence } from 'framer-motion';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import DocumentUploader from './components/DocumentUploader';
-import PersonaSelector from './components/PersonaSelector';
-import JobToBeDone from './components/JobToBeDone';
 import Dashboard from './components/Dashboard';
 import ResultAnalysis from './components/ResultAnalysis';
 import './App.css';
@@ -21,8 +19,6 @@ function App() {
             <Routes>
               <Route path="/" element={<Navigate to="/upload" replace />} />
               <Route path="/upload" element={<DocumentUploader />} />
-              <Route path="/persona" element={<PersonaSelector />} />
-              <Route path="/job" element={<JobToBeDone />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/result-analysis" element={<ResultAnalysis />} />
             </Routes>

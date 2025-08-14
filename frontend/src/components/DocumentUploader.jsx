@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import PdfViewerModal from './PDFViewer';
+import PDFViewerFixed from './PDFViewer';
+import {uploadDocuments} from '../services/api';
 import { 
   Upload, 
   File, 
@@ -141,10 +142,36 @@ const DocumentUploader = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // Handle navigation to persona selection
-  const handleContinue = () => {
+  //Handle navigation to persona selection
+  // const handleContinue = async () => {
+  //   if (uploadedFiles.length > 0) {
+  //     try {
+  //       setUploading(true);
+  //       setErrors([]); // Clear any previous errors
+      
+  //     // Upload files to backend
+  //       const backendResponse = await uploadDocuments(uploadedFiles);
+      
+  //     // Navigate with both local file data and backend response
+  //       navigate('/persona', { 
+  //         state: { 
+  //           uploadedFiles,
+  //           backendData: backendResponse,
+  //           uploadedDocumentIds: backendResponse.document_ids || [] // Assuming Python returns this
+  //         } 
+  //       });
+      
+  //     } catch (error) {
+  //       console.error('Upload failed:', error);
+  //       setErrors([error.message]);
+  //     } finally {
+  //       setUploading(false);
+  //     }
+  //   }
+  // };
+    const handleContinue = () => {
     if (uploadedFiles.length > 0) {
-      navigate('/persona', { state: { uploadedFiles } });
+      navigate('/result-analysis', { state: { uploadedFiles } });
     }
   };
 
@@ -385,12 +412,7 @@ const DocumentUploader = () => {
             */}
             <AnimatePresence>
               {errors.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: -16, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -16, scale: 0.95 }}
-                  transition={{ duration: 0.4, type: "spring", stiffness: 300 }}
-                >
+                <motion.div>
                   <div className="bg-white border-l-4 border-[#DC2626] rounded-2xl p-8 shadow-lg">
                     <div className="flex items-start space-x-4">
                       <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -398,17 +420,13 @@ const DocumentUploader = () => {
                       </div>
                       <div className="flex-1">
                         <h4 className="text-xl font-bold text-[#1A1A1A] mb-4">
-                          Upload Issues Detected
+                          {errors.some(e => e.includes('Failed to upload')) 
+                            ? 'Backend Upload Error' 
+                            : 'Upload Issues Detected'}
                         </h4>
                         <ul className="space-y-2">
                           {errors.map((error, index) => (
-                            <motion.li
-                              key={index}
-                              initial={{ opacity: 0, x: -8 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: index * 0.1 }}
-                              className="text-[#1A1A1A] opacity-70 leading-relaxed"
-                            >
+                            <motion.li key={index} className="text-[#1A1A1A] opacity-70 leading-relaxed">
                               {error}
                             </motion.li>
                           ))}
@@ -601,8 +619,9 @@ const DocumentUploader = () => {
 
         {/* PDF Preview Modal - Premium implementation */}
         {fileToPreview && (
-          <PdfViewerModal
+          <PDFViewerFixed
             file={fileToPreview}
+            isVisible={!!fileToPreview}
             onClose={() => setFileToPreview(null)}
           />
         )}
