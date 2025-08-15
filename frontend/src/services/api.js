@@ -1,9 +1,9 @@
 import axios from 'axios';
 
-// Create axios instance with base configuration
+// Create axios instance with default config
 const api = axios.create({
-  baseURL:'http://localhost:8000', // Your Python backend URL
-  timeout: 30000, // 30 seconds timeout for file uploads
+  baseURL: import.meta.env.VITE_API_BASE_URL + '/api' || 'http://localhost:8000/api',
+  timeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || 30000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -102,6 +102,47 @@ export const deleteDocument = async (documentId) => {
     return response.data;
   } catch (error) {
     throw new Error('Failed to delete document');
+  }
+};
+
+// Generate podcast function
+export const generatePodcast = async (content, documentIds = []) => {
+  try {
+    const response = await api.post('/api/podcast/generate', {
+      content: content,
+      documentIds: documentIds,
+      type: 'analysis_discussion',
+      format: 'mp3',
+      duration: 'medium', // short, medium, long
+      voices: ['host1', 'host2'], // AI voice selection
+      style: 'conversational'
+    });
+
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || 'Failed to generate podcast');
+  }
+};
+
+// Get podcast status (for checking generation progress)
+export const getPodcastStatus = async (podcastId) => {
+  try {
+    const response = await api.get(`/api/podcast/status/${podcastId}`);
+    return response.data;
+  } catch (error) {
+    throw new Error('Failed to get podcast status');
+  }
+};
+
+// Download podcast
+export const downloadPodcast = async (podcastId) => {
+  try {
+    const response = await api.get(`/api/podcast/download/${podcastId}`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error('Failed to download podcast');
   }
 };
 
