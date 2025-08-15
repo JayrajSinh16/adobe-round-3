@@ -36,7 +36,8 @@ const RightPanel = ({
   setRightPanelVisible,
   setActiveInsightTab,
   handleGeneratePodcast,
-  goldenTransition
+  goldenTransition,
+  onInsightClick
 }) => {
   
   // Premium animation configurations based on golden ratio
@@ -535,7 +536,7 @@ const RightPanel = ({
                   )}
 
                   {/* INSIGHTS TAB - Innovative insight cards with deep intelligence */}
-                  {activeInsightTab === 'insights' && <InsightsTab />}
+                  {activeInsightTab === 'insights' && <InsightsTab onInsightClick={onInsightClick} />}
 
                   {/* PODCAST TAB - Premium audio generation */}
                   {activeInsightTab === 'podcast' && (

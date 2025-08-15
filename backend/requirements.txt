@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+python-multipart
+aiofiles
+PyMuPDF
+numpy
+scikit-learn
+google-generativeai
+google-cloud-texttospeech
+azure-cognitiveservices-speech
+openai
+python-dotenv
+httpx
