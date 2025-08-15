@@ -15,9 +15,15 @@ class InsightsService:
         """Generate insights for selected text"""
         start_time = time.time()
         
-        # Default insight types if none specified
+        # Generate all insight types by default if none specified
         if not insight_types:
-            insight_types = ["key_takeaways", "examples", "cross_references"]
+            insight_types = [
+                "key_takeaways",
+                "contradictions", 
+                "examples",
+                "cross_references",
+                "did_you_know"
+            ]
         
         # Find related sections first
         connections = connection_service.find_connections(selected_text, document_id)

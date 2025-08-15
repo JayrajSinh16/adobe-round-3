@@ -8,10 +8,16 @@ class InsightRequest(BaseModel):
     insight_types: Optional[List[Literal[
         "key_takeaways",
         "contradictions",
-        "examples",
+        "examples", 
         "cross_references",
         "did_you_know"
-    ]]] = None
+    ]]] = [
+        "key_takeaways",
+        "contradictions",
+        "examples",
+        "cross_references", 
+        "did_you_know"
+    ]
 
 class Insight(BaseModel):
     type: str
