@@ -10,17 +10,7 @@ import {
 } from "lucide-react";
 import { InsightDetailModal } from "./modals";
 const premiumEasing = [0.25, 0.1, 0.25, 1];
-const InsightsTab = () => {
-  const [selectedInsight, setSelectedInsight] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const handleInsightClick = (insight) => {
-    setSelectedInsight(insight);
-    setIsModalOpen(true);
-  };
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedInsight(null);
-  };
+const InsightsTab = ({ onInsightClick }) => {
   const insights = [
     {
       type: "takeaway",
@@ -125,7 +115,7 @@ const InsightsTab = () => {
               scale: 1.02,
               transition: { duration: 0.3, type: "spring", stiffness: 400 },
             }}
-            onClick={() => handleInsightClick(insight)}
+            onClick={() => onInsightClick(insight)}
             style={{
               background: `linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(250, 250, 249, 0.9) 50%, rgba(243, 244, 246, 0.7) 100%)`,
               backdropFilter: "blur(20px) saturate(150%)",
@@ -326,12 +316,7 @@ const InsightsTab = () => {
           </motion.article>
         ))}{" "}
       </motion.section>{" "}
-      {/* Modal */}{" "}
-      <InsightDetailModal
-        insight={selectedInsight}
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-      />{" "}
+  {/* Modal is now handled by parent */}
     </>
   );
 };

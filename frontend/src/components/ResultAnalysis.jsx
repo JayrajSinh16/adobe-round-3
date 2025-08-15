@@ -9,6 +9,7 @@ import {
 import LeftPanel from './LeftPanel';
 import CenterPanel from './CenterPanel';
 import RightPanel from './RightPanel';
+import InsightDetailModal from './modals/InsightDetailModal';
 
 const PDFAnalysisWorkspace = () => {
   const location = useLocation();
@@ -30,6 +31,18 @@ const PDFAnalysisWorkspace = () => {
   const [selectedTextContext, setSelectedTextContext] = useState(null);
   const [activeInsightTab, setActiveInsightTab] = useState('connections');
   const [searchTerm, setSearchTerm] = useState('');
+  // Insight modal state (LIFTED)
+  const [selectedInsight, setSelectedInsight] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  // Handler to open modal from anywhere
+  const handleInsightClick = (insight) => {
+    setSelectedInsight(insight);
+    setIsModalOpen(true);
+  };
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedInsight(null);
+  };
   
   // PDF State
   const [currentPage, setCurrentPage] = useState(1);
@@ -563,6 +576,12 @@ const PDFAnalysisWorkspace = () => {
           setActiveInsightTab={setActiveInsightTab}
           handleGeneratePodcast={handleGeneratePodcast}
           goldenTransition={goldenTransition}
+          onInsightClick={handleInsightClick}
+        />
+        <InsightDetailModal
+          insight={selectedInsight}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
         />
       </div>
     </motion.div>
