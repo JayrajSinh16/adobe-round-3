@@ -21,3 +21,9 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Backend storage and sample files
+/backend/storage/
+/backend/sample_pdf/
+sample_pdf/
+storage/
