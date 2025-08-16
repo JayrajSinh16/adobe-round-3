@@ -8,7 +8,6 @@ import {
   Network,
   ArrowRight,
 } from "lucide-react";
-import { InsightDetailModal } from "./modals";
 const premiumEasing = [0.25, 0.1, 0.25, 1];
 const InsightsTab = ({ onInsightClick }) => {
   const insights = [
