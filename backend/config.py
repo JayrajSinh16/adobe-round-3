@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
     
     # TTS settings
-    tts_provider: str = os.getenv("TTS_PROVIDER", "azure")
+    tts_provider: str = os.getenv("TTS_PROVIDER", "local")
     azure_tts_key: Optional[str] = os.getenv("AZURE_TTS_KEY")
     azure_tts_endpoint: Optional[str] = os.getenv("AZURE_TTS_ENDPOINT")
     

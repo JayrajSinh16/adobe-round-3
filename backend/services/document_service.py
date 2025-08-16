@@ -164,6 +164,13 @@ class DocumentService:
         """Get all documents"""
         return list(self.documents.values())
     
+    def get_document_by_filename(self, filename: str) -> Optional[DocumentInfo]:
+        """Get document by filename"""
+        for doc in self.documents.values():
+            if doc.filename == filename:
+                return doc
+        return None
+    
     def delete_document(self, doc_id: str) -> bool:
         """Delete a document"""
         if doc_id in self.documents:

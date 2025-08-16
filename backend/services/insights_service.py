@@ -31,12 +31,13 @@ class InsightsService:
         # Prepare related sections data
         related_sections = []
         for conn in connections.connections:
-            doc_info = document_service.get_document(conn.pdf_id)
+            # Get document ID by filename since DocumentConnection only has document name
+            doc_info = document_service.get_document_by_filename(conn.document)
             related_sections.append({
-                'pdf_name': conn.pdf_name,
-                'heading': conn.heading,
+                'pdf_name': conn.document,
+                'heading': conn.title,
                 'content': conn.snippet,
-                'page': conn.page_number
+                'page': conn.pages[0] if conn.pages else 1
             })
         
         # Batch-generate all requested insight types in one LLM call for efficiency
@@ -63,9 +64,9 @@ class InsightsService:
                     }
                 ] + [
                     {
-                        'pdf_name': conn.pdf_name,
-                        'pdf_id': conn.pdf_id,
-                        'page': conn.page_number
+                        'pdf_name': conn.document,
+                        'pdf_id': document_service.get_document_by_filename(conn.document).id if document_service.get_document_by_filename(conn.document) else None,
+                        'page': conn.pages[0] if conn.pages else 1
                     } for conn in connections.connections[:3]
                 ],
                 confidence=float(relevance)
