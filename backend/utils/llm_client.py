@@ -1,207 +1,256 @@
-import os
+"""
+Modular LLM Client - Task-specific interface for document analysis
+"""
+
 import json
-from typing import Dict, Any, Optional, List
-from config import settings
+import os
+from typing import Dict, Any, List, Optional
 
-def chat_with_llm(prompt: str, max_tokens: int = 1000, temperature: float = 0.7) -> str:
-    """
-    Unified LLM interface that uses environment variables to determine provider
-    """
-    provider = settings.llm_provider
-    
+# Import task-specific modules
+from .core_llm import chat_with_llm, get_llm_client
+from .task_modules import summary_generator, insight_analyzer, content_generator
+
+
+def get_all_pdf_outlines() -> List[Dict[str, Any]]:
+    """Get outlines from all uploaded PDFs to provide context to LLM"""
     try:
-        if provider == "gemini":
-            import google.generativeai as genai
-            
-            if settings.google_application_credentials:
-                os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = settings.google_application_credentials
-            
-            genai.configure()
-            model = genai.GenerativeModel(settings.gemini_model)
-            response = model.generate_content(prompt)
-            return response.text
-            
-        elif provider == "openai":
-            from openai import OpenAI
-            
-            client = OpenAI(api_key=settings.openai_api_key)
-            response = client.chat.completions.create(
-                model=settings.openai_model,
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=max_tokens,
-                temperature=temperature
-            )
-            return response.choices[0].message.content
-            
-        elif provider == "ollama":
-            import httpx
-            
-            response = httpx.post(
-                "http://localhost:11434/api/generate",
-                json={
-                    "model": settings.ollama_model,
-                    "prompt": prompt,
-                    "stream": False
-                },
-                timeout=60.0
-            )
-            return response.json()["response"]
-            
-        else:
-            raise ValueError(f"Unsupported LLM provider: {provider}")
-            
+        from services.document_service import document_service
+        
+        outlines = []
+        documents = document_service.get_all_documents()
+        
+        for doc in documents:
+            outline = document_service.get_document_outline(doc.id)
+            if outline:
+                # Format outline for LLM context
+                formatted_outline = {
+                    "pdf_name": doc.filename,
+                    "document_id": doc.id,
+                    "outline": outline.get('outline', []),
+                    "summary": outline.get('summary', outline.get('title', 'No summary available'))
+                }
+                outlines.append(formatted_outline)
+        
+        return outlines
+        
     except Exception as e:
-        print(f"Error in LLM call: {str(e)}")
-        # Fallback response
-        return "Unable to generate response at this time."
+        print(f"Error fetching PDF outlines: {e}")
+        return []
 
-def generate_snippet_summary(text: str, limit: int = 3) -> str:
-    """Generate a 2-3 sentence summary of the given text"""
-    prompt = f"""
-    Summarize the following text in exactly {limit} sentences. 
-    Be concise and capture the main points:
-    
-    {text}
-    
-    Summary:
-    """
-    return chat_with_llm(prompt, max_tokens=150, temperature=0.3)
 
-def generate_insights(selected_text: str, related_sections: List[Dict[str, Any]], insight_type: str) -> str:
-    """Generate specific insights based on the type requested"""
+def format_outlines_for_context(outlines: List[Dict[str, Any]]) -> str:
+    """Format PDF outlines for inclusion in LLM prompts"""
+    if not outlines:
+        return "No PDF documents have been uploaded yet."
     
-    prompt_templates = {
-        "key_takeaways": """
-        Based on the selected text and related sections, provide 3-4 key takeaways:
-        
-        Selected text: {selected_text}
-        
-        Related sections:
-        {related_sections}
-        
-        Format as bullet points, each starting with "• ".
-        """,
-        
-        "contradictions": """
-        Identify any contradictions or conflicting viewpoints between the selected text and related sections:
-        
-        Selected text: {selected_text}
-        
-        Related sections:
-        {related_sections}
-        
-        If no contradictions exist, explain how they complement each other.
-        """,
-        
-        "examples": """
-        Provide practical examples or applications based on the selected text and related content:
-        
-        Selected text: {selected_text}
-        
-        Related sections:
-        {related_sections}
-        
-        Give 2-3 concrete examples.
-        """,
-        
-        "cross_references": """
-        Identify cross-document connections and inspirations:
-        
-        Selected text: {selected_text}
-        
-        Related sections:
-        {related_sections}
-        
-        Show how ideas connect across different documents.
-        """,
-        
-        "did_you_know": """
-        Generate interesting "Did you know?" facts based on the content:
-        
-        Selected text: {selected_text}
-        
-        Related sections:
-        {related_sections}
-        
-        Provide 2-3 fascinating facts or insights.
-        """
-    }
+    context_parts = []
+    context_parts.append("AVAILABLE DOCUMENTS AND THEIR STRUCTURE:")
     
-    template = prompt_templates.get(insight_type, prompt_templates["key_takeaways"])
+    for outline in outlines:
+        context_parts.append(f"\n--- {outline['pdf_name']} ---")
+        context_parts.append(f"Summary: {outline['summary']}")
+        
+        # Add outline structure
+        outline_items = outline.get('outline', [])
+        if outline_items:
+            context_parts.append("Document Structure:")
+            for i, item in enumerate(outline_items):
+                if i >= 10:  # Limit to first 10 items to conserve tokens
+                    break
+                level = item.get('level', 'H1')
+                heading = item.get('text', item.get('heading', 'Unknown'))  # Try 'text' first, then 'heading'
+                try:
+                    # Handle both numeric and string levels
+                    if isinstance(level, str):
+                        if level.lower().startswith('h'):
+                            level_num = int(level[1:]) if level[1:].isdigit() else 1
+                        else:
+                            level_num = 1
+                    else:
+                        level_num = int(level) if level else 1
+                    indent = "  " * max(0, level_num - 1)
+                except (ValueError, TypeError):
+                    indent = ""
+                context_parts.append(f"{indent}- {heading}")
     
-    # Format related sections for the prompt
-    related_text = "\n\n".join([
-        f"From {section.get('pdf_name', 'Unknown')}, {section.get('heading', 'Section')}:\n{section.get('content', '')}"
-        for section in related_sections
-    ])
-    
-    prompt = template.format(
-        selected_text=selected_text,
-        related_sections=related_text
-    )
-    
-    return chat_with_llm(prompt, max_tokens=500, temperature=0.7)
+    return "\n".join(context_parts)
+
+
+# SUMMARY GENERATION TASKS
+
+def generate_snippet_summary(text: str, limit: int = 2) -> str:
+    """Generate a concise summary of the given text"""
+    return summary_generator.generate_snippet_summary(text, limit)
+
+
+def generate_executive_summary(content: List[str], max_length: int = 5) -> str:
+    """Generate an executive summary from multiple content pieces"""
+    return summary_generator.generate_executive_summary(content, max_length)
+
+
+
+# INSIGHT ANALYSIS TASKS
+
+def generate_insights(selected_text: str, related_sections: List[Dict[str, Any]], insight_types: List[str]) -> List[Dict[str, Any]]:
+    """Generate multiple insights efficiently"""
+    return insight_analyzer.generate_multiple_insights(selected_text, related_sections, insight_types)
+
+
+def generate_single_insight(selected_text: str, related_sections: List[Dict[str, Any]], insight_type: str) -> str:
+    """Generate a single insight of specific type"""
+    return insight_analyzer.generate_insight(selected_text, related_sections, insight_type)
+
+
+def get_available_insight_types() -> List[str]:
+    """Get list of available insight types"""
+    return list(insight_analyzer.system_prompts.keys())
+
+
+
+# CONTENT GENERATION TASKS
 
 def generate_podcast_script(selected_text: str, connections: List[Dict], insights: List[Dict], format: str = "podcast") -> List[Dict]:
-    """Generate a podcast script based on the content"""
+    """Generate podcast script or audio overview"""
+    return content_generator.generate_podcast_script(selected_text, connections, insights, format)
+
+
+
+# SPECIALIZED ANALYSIS TASKS
+
+def analyze_document_structure(content: str) -> Dict[str, Any]:
+    """Analyze document structure and provide insights"""
+    pdf_context = get_all_pdf_outlines()
+    context_str = format_outlines_for_context(pdf_context)
     
-    if format == "podcast":
-        prompt = f"""
-        Create a natural, engaging podcast dialogue between two speakers (Host and Expert) discussing the following topic.
-        The conversation should be 3-4 minutes when read aloud (approximately 450-600 words).
-        
-        Main topic from selected text:
-        {selected_text}
-        
-        Related information:
-        {json.dumps(connections, indent=2)}
-        
-        Key insights:
-        {json.dumps(insights, indent=2)}
-        
-        Format the response as a JSON array with objects containing:
-        - "speaker": "Host" or "Expert"
-        - "text": what they say
-        
-        Make it conversational, with natural transitions, questions, and explanations.
-        Include "um", "well", and other natural speech patterns occasionally.
-        The Host should ask insightful questions and the Expert should provide detailed explanations.
-        """
-    else:  # overview format
-        prompt = f"""
-        Create an engaging audio overview narration about the following topic.
-        The narration should be 2-3 minutes when read aloud (approximately 300-450 words).
-        
-        Main topic:
-        {selected_text}
-        
-        Related information:
-        {json.dumps(connections, indent=2)}
-        
-        Key insights:
-        {json.dumps(insights, indent=2)}
-        
-        Format the response as a JSON array with a single object containing:
-        - "speaker": "Narrator"
-        - "text": the complete narration
-        
-        Make it engaging and informative, with smooth transitions between topics.
-        """
+    system_prompt = """You are a document structure analyst with access to a document library. Analyze the given content and provide insights about its organization, key themes, and structural elements while considering how it fits within the broader context of available documents. Focus on how the content is organized and what patterns emerge in relation to the document library. Always respond in plain text format - no markdown, bullets, or special formatting."""
     
-    response = chat_with_llm(prompt, max_tokens=1500, temperature=0.8)
+    user_prompt = f"""Document Library Context:
+{context_str}
+
+Analyze the structure and organization of this document content, considering how it relates to the available documents:
+
+{content[:1000]}..."""
     
+    client = get_llm_client()
+    response = client.generate(
+        prompt=user_prompt,
+        max_tokens=200,
+        temperature=0.6,
+        system_prompt=system_prompt
+    )
+    
+    return {
+        "analysis": response,
+        "content_length": len(content),
+        "analysis_type": "structural"
+    }
+
+
+def extract_key_concepts(content: str) -> List[str]:
+    """Extract key concepts and terms from content"""
+    pdf_context = get_all_pdf_outlines()
+    context_str = format_outlines_for_context(pdf_context)
+    
+    system_prompt = """You are a concept extraction specialist with access to a document library. Identify the most important concepts, terms, and keywords from the given content while considering the broader context of available documents. Focus on technical terms, important ideas, and key concepts that define the content in relation to the document library. Return only the concepts as a comma-separated list in plain text format."""
+    
+    user_prompt = f"""Document Library Context:
+{context_str}
+
+Extract key concepts from this content, considering how they relate to the available documents:
+
+{content[:800]}..."""
+    
+    client = get_llm_client()
+    response = client.generate(
+        prompt=user_prompt,
+        max_tokens=100,
+        temperature=0.4,
+        system_prompt=system_prompt
+    )
+    
+    # Parse comma-separated concepts
     try:
-        # Try to parse as JSON
-        script = json.loads(response)
-        if not isinstance(script, list):
-            script = [script]
-        return script
+        concepts = [concept.strip() for concept in response.split(',')]
+        return concepts[:10]  # Return top 10 concepts
     except:
-        # If not valid JSON, create a simple script
-        if format == "podcast":
-            return [
-                {"speaker": "Host", "text": "Today we're discussing an interesting topic from our document library."},
-                {"speaker": "Expert", "text": response}
-            ]
-        else:
-            return [{"speaker": "Narrator", "text": response}]
+        return ["Unable to extract concepts"]
+
+
+def compare_documents(doc1_content: str, doc2_content: str) -> Dict[str, str]:
+    """Compare two documents and find similarities/differences"""
+    pdf_context = get_all_pdf_outlines()
+    context_str = format_outlines_for_context(pdf_context)
+    
+    system_prompt = """You are a document comparison specialist with access to a document library. Compare two documents and identify their similarities, differences, and relationships while considering the broader context of available documents. Focus on content themes, approaches, and key insights in relation to the document library. Be concise and objective. Always respond in plain text format - no markdown, bullets, or special formatting."""
+    
+    user_prompt = f"""Document Library Context:
+{context_str}
+
+Compare these two document excerpts, considering how they relate to the available documents:
+
+Document 1:
+{doc1_content[:400]}...
+
+Document 2:
+{doc2_content[:400]}..."""
+    
+    client = get_llm_client()
+    response = client.generate(
+        prompt=user_prompt,
+        max_tokens=200,
+        temperature=0.6,
+        system_prompt=system_prompt
+    )
+    
+    return {
+        "comparison": response,
+        "doc1_length": len(doc1_content),
+        "doc2_length": len(doc2_content)
+    }
+
+
+
+# UTILITY FUNCTIONS
+
+def get_task_modules_info() -> Dict[str, List[str]]:
+    """Get information about available task modules and their functions"""
+    return {
+        "summary_tasks": [
+            "generate_snippet_summary",
+            "generate_executive_summary"
+        ],
+        "insight_tasks": [
+            "generate_insights", 
+            "generate_single_insight",
+            "get_available_insight_types"
+        ],
+        "content_tasks": [
+            "generate_podcast_script"
+        ],
+        "analysis_tasks": [
+            "analyze_document_structure",
+            "extract_key_concepts", 
+            "compare_documents"
+        ]
+    }
+
+
+def optimize_for_free_tier(enable: bool = True):
+    """Configure settings to optimize for free tier usage"""
+    if enable:
+        # Reduce default token limits
+        summary_generator.client._max_tokens = 150
+        insight_analyzer.client._max_tokens = 200
+        content_generator.client._max_tokens = 250
+        print("✅ Optimized for free tier - reduced token limits")
+    else:
+        print("✅ Using standard token limits")
+
+
+# BACKWARD COMPATIBILITY
+
+
+# Legacy function signatures for backward compatibility
+def generate_insights_legacy(selected_text: str, insight_types: List[str]) -> List[Dict[str, Any]]:
+    """Legacy function for backward compatibility"""
+    return generate_insights(selected_text, [], insight_types)
