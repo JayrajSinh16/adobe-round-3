@@ -1,10 +1,8 @@
 """
-Modular LLM Client - Task-specific interface for document analysis
+LLM Client - Task-specific interface for document analysis
 """
 
-import json
-import os
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 
 # Import task-specific modules
 from .core_llm import chat_with_llm, get_llm_client
