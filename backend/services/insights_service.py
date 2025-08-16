@@ -39,28 +39,36 @@ class InsightsService:
                 'page': conn.page_number
             })
         
+        # Batch-generate all requested insight types in one LLM call for efficiency
+        raw_insights = generate_insights(selected_text, related_sections, insight_types)
+
+        # Fetch primary document once
+        primary_doc = document_service.get_document(document_id)
+
         insights = []
-        
-        for insight_type in insight_types:
-            # Generate insight using LLM
-            insight_content = generate_insights(selected_text, related_sections, insight_type)
-            
-            # Create insight object
+        for ri in raw_insights:
+            insight_type = ri.get("type", "unknown")
+            content = ri.get("content", "No content generated.")
+            relevance = ri.get("relevance_score", 0.8)
+
             insight = Insight(
                 type=insight_type,
                 title=self._get_insight_title(insight_type),
-                content=insight_content,
-                source_documents=[{
-                    'pdf_name': doc_info.filename,
-                    'pdf_id': doc_info.id,
-                    'page': page_number
-                } for doc_info in [document_service.get_document(document_id)]] + \
-                [{
-                    'pdf_name': conn.pdf_name,
-                    'pdf_id': conn.pdf_id,
-                    'page': conn.page_number
-                } for conn in connections.connections[:3]],  # Include top 3 connections
-                confidence=0.85  # Default confidence score
+                content=content,
+                source_documents=[
+                    {
+                        'pdf_name': primary_doc.filename,
+                        'pdf_id': primary_doc.id,
+                        'page': page_number
+                    }
+                ] + [
+                    {
+                        'pdf_name': conn.pdf_name,
+                        'pdf_id': conn.pdf_id,
+                        'page': conn.page_number
+                    } for conn in connections.connections[:3]
+                ],
+                confidence=float(relevance)
             )
             insights.append(insight)
         
