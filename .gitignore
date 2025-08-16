@@ -40,9 +40,7 @@ backend/**/*.pyo
 backend/**/*.pyd
 
 # Backend runtime artifacts
-storage/pdfs/
-storage/outlines/
-storage/audio/
+storage/
 
 # Frontend build artifacts (monorepo layout)
 frontend/node_modules/
