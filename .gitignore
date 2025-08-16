@@ -24,6 +24,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
 # Backend storage and sample files
 /backend/storage/
 /backend/sample_pdf/
