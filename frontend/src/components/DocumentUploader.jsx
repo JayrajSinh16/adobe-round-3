@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import PDFViewerFixed from './PDFViewer';
@@ -17,6 +17,9 @@ import {
   Plus
 } from 'lucide-react';
 
+// *** CHANGE 1 of 3: DEFINE THE EXPIRATION TIME (30 MINUTES) ***
+const STORAGE_TTL_MS = 30 * 60 * 1000;
+
 const DocumentUploader = () => {
   const navigate = useNavigate();
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -25,6 +28,42 @@ const DocumentUploader = () => {
   const [errors, setErrors] = useState([]);
   const [fileToPreview, setFileToPreview] = useState(null);
   const fileInputRef = useRef(null);
+
+  // *** CHANGE 2 of 3: UPDATE LOADING LOGIC TO CHECK EXPIRATION ***
+  useEffect(() => {
+    const stored = localStorage.getItem('uploadedPDFs');
+    if (stored) {
+      try {
+        const data = JSON.parse(stored);
+
+        // SIDE CHECK: Ensure data is an object and has an expiry property
+        if (data && data.expiry && Date.now() > data.expiry) {
+          console.log("Stored session has expired. Clearing local storage.");
+          localStorage.removeItem('uploadedPDFs');
+          return; // Stop execution if expired
+        }
+
+        // The actual files are now in the 'files' property
+        const filesToLoad = data.files;
+
+        // SIDE CHECK: Ensure the files property is an array before processing
+        if (Array.isArray(filesToLoad)) {
+          const restoredFiles = filesToLoad.map(f => ({
+            ...f,
+            status: 'ready',
+            uploadProgress: 100,
+            previewUrl: f.base64, 
+            pages: f.pages || Math.floor(Math.random() * 50) + 1,
+            file: null 
+          }));
+          setUploadedFiles(restoredFiles);
+        }
+      } catch (e) {
+        console.error("Failed to parse stored PDFs:", e);
+        localStorage.removeItem('uploadedPDFs'); 
+      }
+    }
+  }, []);
 
   // File validation
   const validateFile = (file) => {
@@ -142,116 +181,132 @@ const DocumentUploader = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  //Handle navigation to persona selection
-  // const handleContinue = async () => {
-  //   if (uploadedFiles.length > 0) {
-  //     try {
-  //       setUploading(true);
-  //       setErrors([]); // Clear any previous errors
+  // Helper: File/Blob -> base64 (data URL)
+  const fileToBase64 = (blob) => new Promise((resolve, reject) => {
+    try {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result); // data:application/pdf;base64,....
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    } catch (e) {
+      reject(e);
+    }
+  });
+
+  // *** CHANGE 3 of 3: UPDATE SAVING LOGIC TO INCLUDE EXPIRATION ***
+  const handleContinue = async () => {
+    if (uploadedFiles.length === 0) return;
+
+    try {
+      setUploading(true);
+      setErrors([]);
+
+      // Filter valid File entries (avoid base64-only restored entries)
+      const validFiles = uploadedFiles.filter(
+        (f) => f?.file && typeof f.file?.name === 'string' && typeof f.file?.size === 'number' && typeof f.file?.slice === 'function' && (f.type === 'application/pdf' || f.file?.type === 'application/pdf')
+      );
+
+      // 1) Upload to backend
+      let backendResponse = null;
+      try {
+        if (validFiles.length > 0) {
+          backendResponse = await uploadDocuments(validFiles);
+        } else {
+          console.warn('No valid PDF files to upload to backend. Skipping backend upload.');
+        }
+      } catch (e) {
+        console.error('Backend upload failed:', e);
+        // proceed with localStorage even if backend fails
+      }
+
+      // 2) Prepare files for localStorage (NO CHANGES HERE)
+      const filesToStore = await Promise.all(
+        uploadedFiles.map(async (f) => {
+          if (f.base64) {
+            return {
+              id: f.id,
+              name: f.name,
+              size: f.size,
+              type: f.type,
+              uploadedAt: f.uploadedAt,
+              base64: f.base64,
+            };
+          }
+          const blob = f?.file;
+          if (blob && typeof blob === 'object') {
+            try {
+              const dataUrl = await fileToBase64(blob);
+              return {
+                id: f.id,
+                name: f.name,
+                size: f.size,
+                type: f.type,
+                uploadedAt: f.uploadedAt,
+                base64: dataUrl,
+              };
+            } catch (e) {
+              console.warn('Failed to convert file to base64:', f?.name, e);
+              return null;
+            }
+          }
+          return null;
+        })
+      );
       
-  //     // Upload files to backend
-  //       const backendResponse = await uploadDocuments(uploadedFiles);
-      
-  //     // Navigate with both local file data and backend response
-  //       navigate('/persona', { 
-  //         state: { 
-  //           uploadedFiles,
-  //           backendData: backendResponse,
-  //           uploadedDocumentIds: backendResponse.document_ids || [] // Assuming Python returns this
-  //         } 
-  //       });
-      
-  //     } catch (error) {
-  //       console.error('Upload failed:', error);
-  //       setErrors([error.message]);
-  //     } finally {
-  //       setUploading(false);
-  //     }
-  //   }
-  // };
-    const handleContinue = () => {
-    if (uploadedFiles.length > 0) {
-      navigate('/result-analysis', { state: { uploadedFiles } });
+      // WRAP the files array in an object with an expiry timestamp
+      const dataToPersist = {
+        expiry: Date.now() + STORAGE_TTL_MS,
+        files: filesToStore.filter(Boolean),
+      };
+
+      // SAVE the new object structure to localStorage
+      localStorage.setItem('uploadedPDFs', JSON.stringify(dataToPersist));
+
+      // 3) Navigate with state (NO CHANGES HERE)
+      navigate('/result-analysis', {
+        state: {
+          uploadedFiles,
+          backendData: backendResponse,
+          uploadedDocumentIds: Array.isArray(backendResponse)
+            ? backendResponse.map((d) => d?.id || d?.document_id).filter(Boolean)
+            : [],
+        },
+      });
+    } catch (error) {
+      console.error('Continue flow failed:', error);
+      setErrors([error.message || 'Failed to continue']);
+    } finally {
+      setUploading(false);
     }
   };
 
   return (
-    /*
-    ===================================================================
-    | WORLD-CLASS TWO-COLUMN DOCUMENT UPLOADER - DESIGN MASTERPIECE |
-    ===================================================================
-    
-    Design Philosophy:
-    - Asymmetrical two-column layout for visual sophistication
-    - Museum-quality minimalism with surgical precision in spacing
-    - Elite color palette with mathematical proportions
-    - Interactive micro-animations that feel like premium software
-    - Enterprise-grade accessibility and responsive design
-    
-    Color System (Scientific Color Theory):
-    - Primary: #1A1A1A (Rich Black) - Premium, authoritative
-    - Secondary: #FAFAF9 (Warm White) - Sophisticated, breathable
-    - Accent: #DC2626 (Refined Red) - Purposeful, confident
-    - Neutral: #E5E7EB (Cool Gray) - Elegant, professional
-    - Success: #059669 (Forest Green) - Trustworthy, positive
-    
-    Layout Architecture:
-    - 60/40 split for optimal visual balance
-    - Golden ratio spacing (1.618) throughout
-    - Breathing room calculated for cognitive load reduction
-    - Mobile-first responsive with breakpoint harmony
-    */
+    // ... JSX remains unchanged ...
     <div className="min-h-screen bg-gradient-to-br from-[#FAFAF9] to-[#F3F4F6] py-4 px-6 ">
-      {/* Maximum width container with elegant proportions */}
       <div className="max-w-7xl mx-auto">
-        
-        {/* 
-        HERO SECTION - MUSEUM QUALITY TYPOGRAPHY
-        - Oversized, confident headline that commands attention
-        - Subtitle that guides without overwhelming
-        - Generous negative space for premium feel
-        */}
         <header className="text-center mb-8">
           <motion.div
             initial={{ opacity: 0, y: 32 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
           >
-            {/* Hero Headline - Commanding presence */}
             <h1 className="text-xl md:text-4xl font-black text-[#1A1A1A] mb-2 leading-[0.85] tracking-tight">
               Document 
               <span className=" text-[#DC2626]"> Experience</span>
             </h1>
-            {/* Elegant subheading */}
             <p className="text-xl text-[#1A1A1A] opacity-60 max-w-3xl mx-auto leading-relaxed font-light">
               Upload, organize, and process your PDFs with 
               <span className="font-medium text-[#DC2626]"> surgical precision</span>
             </p>
           </motion.div>
         </header>
-
-        {/* 
-        TWO-COLUMN MASTERPIECE LAYOUT
-        - Left: Upload zone and controls (60% width)
-        - Right: File management and stats (40% width)
-        - Asymmetrical balance creates visual sophistication
-        */}
         <div className={uploadedFiles.length>0? "grid grid-cols-1 xl:grid-cols-5 gap-12 xl:gap-16":
           "flex justify-center items-start pt-12"
         }>
-          
-          {/* LEFT COLUMN - PRIMARY INTERACTION ZONE */}
           <motion.div
             layout
             transition={{ type: 'spring', stiffness: 200, damping: 30 }}
             className="xl:col-span-3 space-y-12 w-full max-w-4xl">
-            
-            {/* 
-            PREMIUM UPLOAD ZONE
-            - Large, confident dropzone with subtle depth
-            - State-aware animations and micro-interactions
-            - Professional feedback systems
-            */}
             <motion.div
               initial={{ opacity: 0, x: -24 }}
               animate={{ opacity: 1, x: 0 }}
@@ -273,7 +328,6 @@ const DocumentUploader = () => {
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
               >
-                {/* Hidden accessibility input */}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -283,18 +337,13 @@ const DocumentUploader = () => {
                   className="hidden"
                   aria-label="Upload PDF documents"
                 />
-                
-                {/* Upload zone content with premium animations */}
                 <div className="py-20 px-12 text-center relative">
-                  {/* Background decorative elements */}
                   <div className="absolute inset-0 opacity-[0.02]">
                     <div className="absolute top-8 left-8 w-32 h-32 bg-[#DC2626] rounded-full blur-3xl"></div>
                     <div className="absolute bottom-8 right-8 w-24 h-24 bg-[#1A1A1A] rounded-full blur-2xl"></div>
                   </div>
-                  
                   <AnimatePresence mode="wait">
                     {uploading ? (
-                      /* PREMIUM LOADING STATE */
                       <motion.div
                         key="uploading"
                         initial={{ opacity: 0, scale: 0.9 }}
@@ -303,24 +352,6 @@ const DocumentUploader = () => {
                         transition={{ duration: 0.4 }}
                         className="relative z-10"
                       >
-                        {/* Sophisticated loading animation */}
-                        {/* <div className="relative mb-8">
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                            className="w-20 h-20 py-32 mx-auto"
-                          >
-                            <div className="w-full h-full border-4 border-[#E5E7EB] border-t-[#DC2626] rounded-full"></div>
-                          </motion.div>
-                          <motion.div
-                            animate={{ scale: [1, 1.1, 1] }}
-                            transition={{ duration: 2, repeat: Infinity }}
-                            className="absolute inset-0 flex items-center justify-center"
-                          >
-                            <Upload className="w-8 h-8 text-[#DC2626]" />
-                          </motion.div>
-                        </div> */}
-                        {/* Sleek Scanner Bar Animation */}
                         <div className="w-full max-w-xs mx-auto mb-8 h-20 flex items-center justify-center">
                           <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
                             <motion.div
@@ -337,7 +368,6 @@ const DocumentUploader = () => {
                             />
                           </div>
                         </div>
-                        
                         <h3 className="text-3xl font-bold text-[#1A1A1A] mb-4">
                           Processing Excellence
                         </h3>
@@ -346,7 +376,6 @@ const DocumentUploader = () => {
                         </p>
                       </motion.div>
                     ) : (
-                      /* PREMIUM DEFAULT STATE */
                       <motion.div
                         key="default"
                         initial={{ opacity: 0, scale: 0.9 }}
@@ -355,7 +384,6 @@ const DocumentUploader = () => {
                         transition={{ duration: 0.4 }}
                         className="relative z-10"
                       >
-                        {/* Hero upload icon with premium animation */}
                         <motion.div
                           animate={dragActive ? { scale: 1.2, rotate: 5 } : { scale: 1, rotate: 0 }}
                           transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
@@ -365,12 +393,9 @@ const DocumentUploader = () => {
                             <div className="w-24 h-24 mx-auto bg-gradient-to-br from-[#DC2626] to-[#B91C1C] rounded-2xl flex items-center justify-center shadow-lg">
                               <Upload className="w-12 h-12 text-white" />
                             </div>
-                            {/* Subtle glow effect */}
                             <div className="absolute inset-0 w-24 h-24 mx-auto bg-[#DC2626] rounded-2xl blur-xl opacity-20"></div>
                           </div>
                         </motion.div>
-                        
-                        {/* Premium call-to-action */}
                         <h3 className="text-4xl font-black text-[#1A1A1A] mb-6 leading-tight">
                           {dragActive ? (
                             <span className="text-[#DC2626]">Release to Upload</span>
@@ -378,12 +403,9 @@ const DocumentUploader = () => {
                             'Drop Files Here'
                           )}
                         </h3>
-                        
                         <p className="text-xl text-[#1A1A1A] opacity-70 mb-10 font-light">
                           or click to browse your computer
                         </p>
-                        
-                        {/* Elegant file requirements */}
                         <div className="flex items-center justify-center space-x-8 text-sm text-[#1A1A1A] opacity-40">
                           <div className="flex items-center space-x-2">
                             <div className="w-1.5 h-1.5 bg-[#DC2626] rounded-full"></div>
@@ -404,12 +426,6 @@ const DocumentUploader = () => {
                 </div>
               </div>
             </motion.div>
-
-            {/* 
-            PREMIUM ERROR HANDLING
-            - Elegant error display with sophisticated animations
-            - Clear visual hierarchy without alarm
-            */}
             <AnimatePresence>
               {errors.length > 0 && (
                 <motion.div>
@@ -438,15 +454,7 @@ const DocumentUploader = () => {
               )}
             </AnimatePresence>
           </motion.div>
-
-          {/* RIGHT COLUMN - FILE MANAGEMENT & STATS */}
           <div className="xl:col-span-2 space-y-8">
-            
-            {/* 
-            PREMIUM FILE MANAGEMENT
-            - Sophisticated file list with premium interactions
-            - Clean information hierarchy
-            */}
             {uploadedFiles.length > 0 && (
               <motion.div
                 layout
@@ -455,7 +463,6 @@ const DocumentUploader = () => {
                 transition={{ duration: 0.7, delay: 0.3 }}
                 className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 overflow-hidden"
               >
-                {/* Premium header */}
                 <div className="px-8 py-6 bg-gradient-to-r from-[#1A1A1A] to-[#374151] text-white">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -478,8 +485,6 @@ const DocumentUploader = () => {
                     </button>
                   </div>
                 </div>
-
-                {/* Premium file list */}
                 <div className="max-h-96 overflow-y-auto">
                   <AnimatePresence>
                     {uploadedFiles.map((file, index) => (
@@ -535,8 +540,6 @@ const DocumentUploader = () => {
                     ))}
                   </AnimatePresence>
                 </div>
-
-                {/* Premium action bar */}
                 <div className="px-8 py-6 bg-gray-50/50 border-t border-gray-100">
                   <div className="flex items-center justify-between">
                     <button 
@@ -557,12 +560,6 @@ const DocumentUploader = () => {
                 </div>
               </motion.div>
             )}
-
-            {/* 
-            PREMIUM STATISTICS DISPLAY
-            - Beautiful stat cards with subtle animations
-            - Information hierarchy through color and typography
-            */}
             {uploadedFiles.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 24 }}
@@ -570,7 +567,6 @@ const DocumentUploader = () => {
                 transition={{ delay: 0.4, duration: 0.6 }}
                 className="space-y-4"
               >
-                {/* Document count */}
                 <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-white/20 shadow-lg">
                   <div className="flex items-center justify-between">
                     <div>
@@ -582,23 +578,6 @@ const DocumentUploader = () => {
                     </div>
                   </div>
                 </div>
-                
-                {/* Total pages */}
-                {/* <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-white/20 shadow-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-[#1A1A1A] opacity-60 mb-1">Total Pages</p>
-                      <p className="text-3xl font-black text-[#DC2626]">
-                        {uploadedFiles.reduce((total, file) => total + file.pages, 0)}
-                      </p>
-                    </div>
-                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                      <File className="w-6 h-6 text-blue-600" />
-                    </div>
-                  </div>
-                </div> */}
-                
-                {/* Total size */}
                 <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-white/20 shadow-lg">
                   <div className="flex items-center justify-between">
                     <div>
@@ -616,8 +595,6 @@ const DocumentUploader = () => {
             )}
           </div>
         </div>
-
-        {/* PDF Preview Modal - Premium implementation */}
         {fileToPreview && (
           <PDFViewerFixed
             file={fileToPreview}
@@ -625,7 +602,6 @@ const DocumentUploader = () => {
             onClose={() => setFileToPreview(null)}
           />
         )}
-
       </div>
     </div>
   );

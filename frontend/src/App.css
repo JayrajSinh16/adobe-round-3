@@ -1,3 +1,13 @@
+.no-scrollbar::-webkit-scrollbar {
+  height: 6px;
+}
+.no-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(0,0,0,0.2);
+  border-radius: 3px;
+}
+.no-scrollbar {
+  scrollbar-width: thin;
+}
 .App {
   text-align: center;
 }
@@ -116,6 +126,7 @@
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 1;
+  line-clamp: 1;
   -webkit-box-orient: vertical;
 }
 
@@ -123,5 +134,6 @@
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
 }
