@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { 
   ArrowLeft, Upload, MoreVertical, Download, TrendingUp, AlertTriangle, Target
 } from 'lucide-react';
@@ -10,6 +11,7 @@ import LeftPanel from './LeftPanel';
 import CenterPanel from './CenterPanel';
 import RightPanel from './RightPanel';
 import InsightDetailModal from './modals/InsightDetailModal';
+import { uploadDocuments } from '../services/api';
 
 const PDFAnalysisWorkspace = () => {
   const location = useLocation();
@@ -18,15 +20,83 @@ const PDFAnalysisWorkspace = () => {
   const containerRef = useRef(null);
 
   // Navigation state
-  const { uploadedFiles = [] } = location.state || {};
+  const STORAGE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+  // Helper: base64 -> File
+  const base64ToFile = (base64DataUrl, fileName, mimeType = 'application/pdf', lastModified) => {
+    try {
+      const base64Payload = typeof base64DataUrl === 'string' && base64DataUrl.includes(',')
+        ? base64DataUrl.split(',')[1]
+        : base64DataUrl;
+      const byteString = atob(base64Payload || '');
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+      return new File([ab], fileName, { type: mimeType, lastModified: lastModified || Date.now() });
+    } catch (e) {
+      return null;
+    }
+  };
+
+  // Helper: File -> data URL
+  const fileToBase64 = (blob) => new Promise((resolve, reject) => {
+    try {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    } catch (e) { reject(e); }
+  });
+
+  let uploadedFiles = [];
+  if (location.state && location.state.uploadedFiles && location.state.uploadedFiles.length > 0) {
+    uploadedFiles = location.state.uploadedFiles;
+  } else {
+    // Try to load from localStorage
+    const stored = localStorage.getItem('uploadedPDFs');
+    if (stored) {
+      try {
+        const data = JSON.parse(stored);
+        if (!data || (data.expiry && Date.now() > data.expiry)) {
+          localStorage.removeItem('uploadedPDFs');
+        } else if (Array.isArray(data.files)) {
+          const seen = new Set();
+          uploadedFiles = data.files.map((pdf, idx) => {
+            const theFile = base64ToFile(pdf.base64, pdf.name || `file-${idx + 1}.pdf`, pdf.type || 'application/pdf', pdf.lastModified);
+            const id = pdf.id || `${pdf.name}-${pdf.size}`;
+            const key = `${pdf.name}|${pdf.size}`;
+            if (!theFile || seen.has(key)) return null; // skip invalid/duplicates
+            seen.add(key);
+            return {
+              id: pdf.id || `file-${Date.now()}-${idx}`,
+              name: pdf.name,
+              size: pdf.size,
+              type: pdf.type || 'application/pdf',
+              uploadedAt: pdf.uploadedAt || new Date().toISOString(),
+              file: theFile,
+            };
+          }).filter(Boolean);
+        }
+      } catch (e) {
+        uploadedFiles = [];
+      }
+    }
+  }
 
   // Enhanced file management state
   const [files, setFiles] = useState(uploadedFiles);
+  // Tabs state: each tab { id, file }
+  const [openTabs, setOpenTabs] = useState(() => {
+    if (!uploadedFiles || uploadedFiles.length === 0) return [];
+    const last = uploadedFiles[uploadedFiles.length - 1];
+    return [{ id: `${last.id || last.name}-${Date.now()}`, file: last }];
+  });
+  const [activeTabId, setActiveTabId] = useState(() => (openTabs[0]?.id || null));
   
   // Core UI State
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [rightPanelVisible, setRightPanelVisible] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(uploadedFiles[0] || null);
+  const [selectedFile, setSelectedFile] = useState(uploadedFiles[uploadedFiles.length - 1] || null);
   const [selectedText, setSelectedText] = useState('');
   const [selectedTextContext, setSelectedTextContext] = useState(null);
   const [activeInsightTab, setActiveInsightTab] = useState('connections');
@@ -142,10 +212,45 @@ const PDFAnalysisWorkspace = () => {
   // Event handlers
   const handleFileSelect = useCallback((file) => {
     setSelectedFile(file);
+    // open a tab if not already
+    setOpenTabs((prev) => {
+      const exists = prev.find((t) => t.file?.name === file.name && t.file?.size === file.size);
+      if (exists) {
+        setActiveTabId(exists.id);
+        return prev;
+      }
+      const newTab = { id: `${file.id || file.name}-${Date.now()}`, file };
+      setActiveTabId(newTab.id);
+      return [...prev, newTab];
+    });
     setRightPanelVisible(false);
     setSelectedText('');
     setSelectedTextContext(null);
   }, []);
+
+  const onActivateTab = useCallback((tabId) => {
+    const tab = openTabs.find(t => t.id === tabId);
+    if (tab) {
+      setActiveTabId(tabId);
+      setSelectedFile(tab.file);
+      setRightPanelVisible(false);
+    }
+  }, [openTabs]);
+
+  const onCloseTab = useCallback((tabId) => {
+    setOpenTabs((prev) => {
+      const idx = prev.findIndex(t => t.id === tabId);
+      if (idx === -1) return prev;
+      const newTabs = prev.filter(t => t.id !== tabId);
+      // update active
+      if (activeTabId === tabId) {
+        const next = newTabs[idx] || newTabs[idx - 1] || null;
+        setActiveTabId(next?.id || null);
+        setSelectedFile(next?.file || null);
+      }
+      return newTabs;
+    });
+  }, [activeTabId]);
 
   const handleBackToUpload = useCallback(() => {
     navigate('/upload');
@@ -188,23 +293,114 @@ const PDFAnalysisWorkspace = () => {
   }, []);
 
   // Enhanced file upload handler
-  const handleFileUpload = useCallback((newFiles) => {
-    const processedNewFiles = newFiles.map((file, index) => ({
+  const handleFileUpload = useCallback(async (incomingFiles) => {
+    if (!Array.isArray(incomingFiles) || incomingFiles.length === 0) return;
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    const allowedTypes = ['application/pdf'];
+
+    // Validate and de-dup
+    const currentNames = new Set(files.map(f => f.name + '|' + f.size));
+    const valid = [];
+    incomingFiles.forEach((file) => {
+      if (!allowedTypes.includes(file.type)) {
+        toast.error(`${file.name}: Only PDF files are supported`);
+        return;
+      }
+      if (file.size > maxSize) {
+        toast.error(`${file.name}: File size must be less than 50MB`);
+        return;
+      }
+      const key = file.name + '|' + file.size;
+      if (currentNames.has(key)) {
+        toast.error(`${file.name}: File already uploaded`);
+        return;
+      }
+      valid.push(file);
+    });
+
+    if (valid.length === 0) return;
+
+    // Build objects for state and backend
+    const now = new Date();
+    const processedNewFiles = valid.map((file, index) => ({
       id: `file-${Date.now()}-${index}`,
       name: file.name,
       size: file.size,
       type: file.type,
-      file: file,
+      file,
+      uploadedAt: now.toISOString(),
       category: 'General',
       categoryColor: '#6B7280',
       pages: Math.floor(Math.random() * 50) + 10,
       confidence: Math.floor(Math.random() * 21) + 79,
-      lastAccessed: new Date(),
+      lastAccessed: now,
       readingTime: Math.floor(Math.random() * 30) + 5
     }));
-    
-    setFiles(prev => [...prev, ...processedNewFiles]);
-  }, []);
+
+    // Try backend upload (non-blocking for local persistence)
+    try {
+      await uploadDocuments(processedNewFiles);
+      toast.success(`${processedNewFiles.length} document(s) uploaded`);
+    } catch (e) {
+      toast.error(e.message || 'Failed to upload to server');
+    }
+
+    // Persist to localStorage with TTL, merging with existing entries
+    try {
+      const existingRaw = localStorage.getItem('uploadedPDFs');
+      let existing = { expiry: Date.now() + STORAGE_TTL_MS, files: [] };
+      if (existingRaw) {
+        try {
+          const parsed = JSON.parse(existingRaw);
+          if (parsed && Array.isArray(parsed.files) && (!parsed.expiry || Date.now() < parsed.expiry)) {
+            existing = parsed;
+          }
+        } catch {}
+      }
+      const newFilesForStore = await Promise.all(processedNewFiles.map(async (f) => ({
+        id: f.id,
+        name: f.name,
+        size: f.size,
+        type: f.type,
+        uploadedAt: f.uploadedAt,
+        base64: await fileToBase64(f.file)
+      })));
+      // Merge while removing duplicates by name|size
+      const mergedList = [...(existing.files || []), ...newFilesForStore];
+      const dedupMap = new Map();
+      for (const f of mergedList) {
+        if (!f?.name || !f?.size) continue;
+        dedupMap.set(`${f.name}|${f.size}`, f);
+      }
+      const merged = {
+        expiry: Date.now() + STORAGE_TTL_MS,
+        files: Array.from(dedupMap.values())
+      };
+      localStorage.setItem('uploadedPDFs', JSON.stringify(merged));
+    } catch (e) {
+      toast.error('Failed to persist files locally');
+    }
+
+    // Update state and select the latest uploaded by default
+    setFiles(prev => {
+      const next = [...prev, ...processedNewFiles];
+      const latest = processedNewFiles[processedNewFiles.length - 1];
+      setSelectedFile(latest);
+      // open a new tab for the latest and activate it
+      setOpenTabs((tabs) => {
+        const exists = tabs.find(t => t.file?.name === latest.name && t.file?.size === latest.size);
+        if (exists) {
+          setActiveTabId(exists.id);
+          return tabs;
+        }
+        const newTab = { id: `${latest.id || latest.name}-${Date.now()}`, file: latest };
+        setActiveTabId(newTab.id);
+        return [...tabs, newTab];
+      });
+      setRightPanelVisible(false);
+      return next;
+    });
+  }, [files, setRightPanelVisible]);
 
   // Format utilities
   const formatFileSize = (bytes) => {
@@ -453,29 +649,8 @@ const PDFAnalysisWorkspace = () => {
                 {selectedFile && (
                   <div className="absolute inset-0 bg-gradient-to-r from-[#059669]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 )}
-                <Download className="w-4 h-4 relative z-10" />
-                
-                {/* Tooltip indicator */}
-                {selectedFile && (
-                  <motion.div
-                    className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-[#059669] rounded-full opacity-0 group-hover:opacity-100"
-                    initial={false}
-                    whileHover={{ scale: [1, 1.3, 1] }}
-                    transition={{ duration: 0.5 }}
-                  />
-                )}
-              </motion.button>
-
-              {/* Smart options menu */}
-              {/* <motion.button 
-                className="relative p-2.5 rounded-xl bg-white/40 text-[#1A1A1A] hover:bg-white/60 transition-all duration-300 overflow-hidden group"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                aria-label="Workspace options"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-[#DC2626]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <MoreVertical className="w-4 h-4 relative z-10 group-hover:rotate-90 transition-transform duration-300" />
-              </motion.button> */}
+              </motion.button>
 
               {/* Innovative workspace insights */}
               <motion.button 
@@ -550,6 +725,10 @@ const PDFAnalysisWorkspace = () => {
         {/* CENTER PANEL - Premium PDF Viewer */}
         <CenterPanel
           selectedFile={selectedFile}
+          openTabs={openTabs}
+          activeTabId={activeTabId}
+          onActivateTab={onActivateTab}
+          onCloseTab={onCloseTab}
           currentPage={currentPage}
           pdfZoom={pdfZoom}
           pdfLoading={pdfLoading}

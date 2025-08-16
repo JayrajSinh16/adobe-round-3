@@ -1,0 +1,312 @@
+import React from 'react';
+import { motion } from 'framer-motion';
+import { 
+  Brain, 
+  Network, 
+  Layers, 
+  BookOpen,
+  ArrowRight,
+  Zap,
+  Eye,
+  Puzzle,
+  Sparkles,
+  Share2
+} from 'lucide-react';
+
+const CrossDocumentInspirationInsight = ({ insight }) => {
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.9, duration: 0.6 }}
+      className="bg-white rounded-3xl py-6 px-8 shadow-lg border border-purple-200"
+    >
+      {/* Header */}
+      <div className="flex items-center space-x-4 mb-6">
+        <div className="p-3 bg-purple-100 rounded-xl">
+          <Brain className="w-7 h-7 text-purple-600" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Cross-Document Inspiration</h2>
+          <p className="text-sm text-purple-600 font-medium">Creative Connections Across Multiple Sources</p>
+        </div>
+      </div>
+      
+      {/* Main Content */}
+      <div className="space-y-6">
+        {/* Inspiration Highlight */}
+        <div className="bg-gradient-to-r from-purple-50 via-indigo-25 to-white rounded-2xl p-6 border-l-4 border-purple-500">
+          <div className="flex items-start space-x-4">
+            <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0 mt-1">
+              <Sparkles className="w-5 h-5 text-purple-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Innovative Connection</h3>
+              <p className="text-gray-800 text-lg leading-relaxed font-medium">
+                {insight.insight}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Connection Mapping */}
+        <div className="bg-gray-50 rounded-xl p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2">
+            <Network className="w-5 h-5 text-purple-600" />
+            <span>Document Connection Map</span>
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Source Documents */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-purple-600 text-sm mb-3">Source Documents</h4>
+              {(insight.documents || ['Document A', 'Document B', 'Document C']).map((doc, index) => (
+                <div key={index} className="bg-white rounded-lg p-3 border border-purple-100">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
+                    <span className="text-gray-700 text-sm font-medium">{doc}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Connection Lines */}
+            <div className="flex items-center justify-center">
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <ArrowRight className="w-5 h-5 text-gray-400" />
+                  <Puzzle className="w-6 h-6 text-purple-500" />
+                  <ArrowRight className="w-5 h-5 text-gray-400" />
+                </div>
+                <p className="text-xs text-gray-500 text-center">AI-Powered<br/>Connection Analysis</p>
+              </div>
+            </div>
+
+            {/* Generated Insight */}
+            <div className="bg-gradient-to-br from-purple-100 to-indigo-100 rounded-lg p-4">
+              <h4 className="font-semibold text-purple-800 text-sm mb-3">Innovation Catalyst</h4>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Zap className="w-4 h-4 text-purple-600" />
+                  <span className="text-purple-700 text-sm">Novel Pattern Detected</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Eye className="w-4 h-4 text-purple-600" />
+                  <span className="text-purple-700 text-sm">Hidden Relationship Found</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Brain className="w-4 h-4 text-purple-600" />
+                  <span className="text-purple-700 text-sm">Creative Synthesis</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Innovation Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 text-center">
+            <div className="text-2xl font-black text-purple-600 mb-2">
+              {insight.novelty_score || '92'}
+            </div>
+            <div className="text-sm font-bold text-gray-600 uppercase tracking-wide">
+              Novelty Score
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl p-4 text-center">
+            <div className="text-2xl font-black text-indigo-600 mb-2">
+              {insight.connection_strength || 'Strong'}
+            </div>
+            <div className="text-sm font-bold text-gray-600 uppercase tracking-wide">
+              Connection Strength
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-br from-pink-50 to-rose-50 rounded-xl p-4 text-center">
+            <div className="text-2xl font-black text-pink-600 mb-2">
+              {insight.documents?.length || 3}
+            </div>
+            <div className="text-sm font-bold text-gray-600 uppercase tracking-wide">
+              Sources Connected
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-4 text-center">
+            <div className="text-2xl font-black text-yellow-600 mb-2">
+              {insight.innovation_potential || 'High'}
+            </div>
+            <div className="text-sm font-bold text-gray-600 uppercase tracking-wide">
+              Innovation Potential
+            </div>
+          </div>
+        </div>
+
+        {/* Detailed Analysis */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Pattern Analysis */}
+          <div className="bg-white border border-purple-100 rounded-xl p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2">
+              <Layers className="w-5 h-5 text-purple-600" />
+              <span>Pattern Analysis</span>
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <h4 className="font-semibold text-purple-600 text-sm mb-2">Common Themes</h4>
+                <div className="flex flex-wrap gap-2">
+                  {(insight.common_themes || ['Innovation', 'Efficiency', 'Scalability']).map((theme, index) => (
+                    <span 
+                      key={index} 
+                      className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium"
+                    >
+                      {theme}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h4 className="font-semibold text-indigo-600 text-sm mb-2">Emerging Patterns</h4>
+                <p className="text-gray-700 text-sm leading-relaxed">
+                  {insight.emerging_pattern || "Cross-functional collaboration appears as a recurring success factor across multiple case studies and frameworks."}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Innovation Opportunity */}
+          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2">
+              <Zap className="w-5 h-5 text-yellow-600" />
+              <span>Innovation Opportunity</span>
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <h4 className="font-semibold text-yellow-600 text-sm mb-2">Synthesis Potential</h4>
+                <p className="text-gray-700 text-sm leading-relaxed">
+                  {insight.synthesis_potential || "Combining insights from different documents reveals unexplored opportunities for innovation and optimization."}
+                </p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-green-600 text-sm mb-2">Implementation Ideas</h4>
+                <ul className="space-y-1">
+                  <li className="flex items-start space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                    <span className="text-gray-700 text-sm">
+                      {insight.idea1 || "Develop hybrid approach combining best practices"}
+                    </span>
+                  </li>
+                  <li className="flex items-start space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                    <span className="text-gray-700 text-sm">
+                      {insight.idea2 || "Create integrated framework for implementation"}
+                    </span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Creative Applications */}
+        <div className="bg-white border border-gray-200 rounded-xl p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2">
+            <BookOpen className="w-5 h-5 text-blue-600" />
+            <span>Creative Applications</span>
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-semibold text-blue-600 mb-3 text-sm">Immediate Applications</h4>
+              <ul className="space-y-2">
+                <li className="flex items-start space-x-2">
+                  <ArrowRight className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700 text-sm">
+                    {insight.immediate_app1 || "Apply cross-document insights to current projects"}
+                  </span>
+                </li>
+                <li className="flex items-start space-x-2">
+                  <ArrowRight className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700 text-sm">
+                    {insight.immediate_app2 || "Use patterns for strategic planning"}
+                  </span>
+                </li>
+                <li className="flex items-start space-x-2">
+                  <ArrowRight className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700 text-sm">
+                    {insight.immediate_app3 || "Inform decision-making processes"}
+                  </span>
+                </li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold text-purple-600 mb-3 text-sm">Future Exploration</h4>
+              <ul className="space-y-2">
+                <li className="flex items-start space-x-2">
+                  <Sparkles className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700 text-sm">
+                    {insight.future_exp1 || "Develop new methodologies based on connections"}
+                  </span>
+                </li>
+                <li className="flex items-start space-x-2">
+                  <Sparkles className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700 text-sm">
+                    {insight.future_exp2 || "Research additional cross-domain applications"}
+                  </span>
+                </li>
+                <li className="flex items-start space-x-2">
+                  <Sparkles className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700 text-sm">
+                    {insight.future_exp3 || "Explore interdisciplinary collaboration opportunities"}
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Collaborative Insights */}
+        <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-900 flex items-center space-x-2">
+              <Share2 className="w-5 h-5 text-purple-600" />
+              <span>Share This Innovation</span>
+            </h3>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg text-sm font-medium transition-colors duration-200"
+            >
+              <Share2 className="w-4 h-4 inline mr-2" />
+              Share Connection
+            </motion.button>
+          </div>
+          
+          <p className="text-gray-700 text-sm leading-relaxed">
+            This cross-document insight reveals innovative connections that might inspire new approaches 
+            in your field. Consider sharing with colleagues or teams working on similar challenges to 
+            foster collaborative innovation and knowledge sharing.
+          </p>
+        </div>
+
+        {/* Related Connections */}
+        {insight.related_connections && (
+          <div className="bg-gray-50 rounded-xl p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Related Connections</h3>
+            <div className="space-y-3">
+              {insight.related_connections.map((connection, index) => (
+                <div key={index} className="flex items-center space-x-3 bg-white rounded-lg p-3">
+                  <Network className="w-4 h-4 text-purple-500" />
+                  <span className="text-gray-700 text-sm font-medium">{connection}</span>
+                  <ArrowRight className="w-4 h-4 text-gray-400 ml-auto" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.section>
+  );
+};
+
+export default CrossDocumentInspirationInsight;

@@ -2,8 +2,9 @@ import axios from 'axios';
 
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL + '/api' || 'http://localhost:8000/api',
-  timeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || 30000,
+  // Prefer Vite env if provided, fallback to localhost:8000
+  baseURL: (import.meta?.env?.VITE_API_BASE_URL?.trim?.() || 'http://localhost:8000'),
+  timeout: parseInt(import.meta?.env?.VITE_API_TIMEOUT) || 30000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -39,21 +40,27 @@ export const uploadDocuments = async (files) => {
   
   // Add each file to FormData
   files.forEach((fileObj, index) => {
-    formData.append('files', fileObj.file); // The actual File object
+    if (fileObj && fileObj.file) {
+      // include filename explicitly
+      formData.append('files', fileObj.file, fileObj.name || fileObj.file.name || `file-${index}.pdf`);
+    }
     // Optionally add metadata for each file
     formData.append(`metadata[${index}]`, JSON.stringify({
       id: fileObj.id,
-      name: fileObj.name,
+      filename: fileObj.name,
       size: fileObj.size,
-      uploadedAt: fileObj.uploadedAt
+      upload_time: fileObj.uploadedAt
     }));
   });
 
+  // Guard: no valid files
+  if (![...formData.keys()].some((k) => k === 'files')) {
+    throw new Error('No valid PDF files to upload');
+  }
+
   try {
-    const response = await api.post('/api/documents/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+  // Do not set Content-Type; let the browser set the proper multipart boundary
+  const response = await api.post('/api/documents/bulk-upload', formData, {
       onUploadProgress: (progressEvent) => {
         // Optional: Handle upload progress
         const percentCompleted = Math.round(
@@ -72,7 +79,7 @@ export const uploadDocuments = async (files) => {
 // Process selected text function
 export const processSelectedText = async (textData) => {
   try {
-    const response = await api.post('/api/documents/process-text', {
+  const response = await api.post('/api/documents/process-text', {
       selectedText: textData.text,
       fileName: textData.fileName,
       pageNumber: textData.pageNumber,

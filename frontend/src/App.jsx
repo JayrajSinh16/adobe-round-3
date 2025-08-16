@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
+import { Toaster } from 'react-hot-toast';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import DocumentUploader from './components/DocumentUploader';
@@ -14,6 +15,10 @@ function App() {
         {/* <Header /> */}
         
         <main className=" mx-auto px-4 sm:px-6 lg:px-6 py-6">
+          <Toaster position="top-right" gutter={8} toastOptions={{
+            success: { duration: 2500 },
+            error: { duration: 4000 }
+          }} />
           <AnimatePresence mode="wait">
             <Routes>
               <Route path="/" element={<Navigate to="/upload" replace />} />
