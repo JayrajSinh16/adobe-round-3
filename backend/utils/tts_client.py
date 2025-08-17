@@ -84,18 +84,31 @@ def generate_audio(text: str, speaker: str = "default") -> str:
             
             engine = pyttsx3.init()
             
-            # Configure voice based on speaker
+            # Configure voice based on speaker with enhanced natural settings
             voices = engine.getProperty('voices')
             if voices and len(voices) > 1:
-                if speaker in ["Host", "Alex"] and len(voices) > 0:  # Female voice
+                if speaker in ["Host", "Alex"] and len(voices) > 0:  # Female voice (Zira)
+                    engine.setProperty('voice', voices[1].id if len(voices) > 1 else voices[0].id)  
+                elif speaker in ["Expert", "Jamie"] and len(voices) > 1:  # Male voice (David)
                     engine.setProperty('voice', voices[0].id)  
-                elif speaker in ["Expert", "Jamie"] and len(voices) > 1:  # Male voice
-                    engine.setProperty('voice', voices[1].id)  
                 else:
                     engine.setProperty('voice', voices[0].id)  # Default voice
             
-            # Set speech rate (words per minute)
-            engine.setProperty('rate', 180)
+            # Enhanced natural speech settings based on speaker personality
+            if speaker in ["Alex", "Host"]:
+                # Female host: Friendly, curious, slightly slower
+                engine.setProperty('rate', 152)  # Slower, more thoughtful
+                engine.setProperty('volume', 0.92)  # Slightly higher volume
+            elif speaker in ["Jamie", "Expert"]:
+                # Male expert: Authoritative but approachable
+                engine.setProperty('rate', 158)  # Measured pace
+                engine.setProperty('volume', 0.88)  # Slightly lower volume for depth
+            else:
+                # Default settings
+                engine.setProperty('rate', 155)
+                engine.setProperty('volume', 0.9)
+            
+            # Add natural speech variations (pitch and emphasis would require SSML)
             
             # pyttsx3 generates WAV files
             engine.save_to_file(text, output_path)
@@ -152,16 +165,39 @@ def create_podcast_audio(script: List[Dict[str, str]]) -> str:
         from pydub import AudioSegment
         print("Attempting to combine WAV audio using pydub...")
         
-        # Load all audio segments
+        # Load all audio segments with natural timing
         audio_segments = []
-        for audio_file in audio_files_created:
+        previous_speaker = None
+        
+        for i, audio_file in enumerate(audio_files_created):
             audio_path = os.path.join(settings.audio_folder, audio_file)
             try:
-                segment = AudioSegment.from_wav(audio_path)  # Changed from from_mp3 to from_wav
+                segment = AudioSegment.from_wav(audio_path)
                 audio_segments.append(segment)
-                # Add brief pause between speakers (500ms)
-                audio_segments.append(AudioSegment.silent(duration=500))
+                
+                # Determine current speaker from script
+                current_speaker = script[i]['speaker'] if i < len(script) else 'unknown'
+                
+                # Add natural pauses based on speaker transitions and content
+                if i < len(audio_files_created) - 1:  # Not the last segment
+                    # Different pause lengths for more natural conversation
+                    if previous_speaker != current_speaker:
+                        # Speaker change: longer pause for natural turn-taking
+                        pause_duration = 850  # ms
+                    else:
+                        # Same speaker continuing: shorter pause
+                        pause_duration = 400  # ms
+                    
+                    # Add slight variation to pause lengths for naturalness
+                    import random
+                    pause_variation = random.randint(-50, 50)
+                    final_pause = max(200, pause_duration + pause_variation)
+                    
+                    audio_segments.append(AudioSegment.silent(duration=final_pause))
+                
+                previous_speaker = current_speaker
                 print(f"✅ Loaded: {audio_file}")
+                
             except Exception as e:
                 print(f"❌ Could not load {audio_file}: {e}")
                 continue

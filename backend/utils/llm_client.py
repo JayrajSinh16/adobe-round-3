@@ -107,9 +107,9 @@ def get_available_insight_types() -> List[str]:
 
 # CONTENT GENERATION TASKS
 
-def generate_podcast_script(selected_text: str, insights: List[Dict], format: str = "podcast") -> List[Dict]:
-    """Generate podcast script or audio overview using insights"""
-    return content_generator.generate_podcast_script(selected_text, insights, format)
+def generate_podcast_script(selected_text: str, insights: List[Dict], format: str = "podcast", max_duration_minutes: float = 4.5) -> List[Dict]:
+    """Generate podcast script or audio overview using insights with time constraints"""
+    return content_generator.generate_podcast_script(selected_text, insights, format, max_duration_minutes)
 
 
 

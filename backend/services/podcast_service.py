@@ -13,18 +13,23 @@ class PodcastService:
     
     def generate_podcast(self, selected_text: str, insights: List[Dict[str, Any]],
                         format: str = "podcast", duration: str = "medium") -> PodcastResponse:
-        """Generate podcast or audio overview using frontend insights"""
+        """Generate podcast or audio overview using frontend insights with strict 4.5-minute limit"""
         start_time = time.time()
         
-        # Determine target duration in seconds
+        # Determine target duration in minutes (strict 4.5-minute maximum)
         duration_map = {
-            "short": 120,  # 2 minutes
-            "medium": 210,  # 3.5 minutes
-            "long": 300     # 5 minutes
+            "short": 2.0,    # 2 minutes
+            "medium": 3.5,   # 3.5 minutes  
+            "long": 4.5      # 4.5 minutes (maximum allowed)
         }
-        target_duration = duration_map.get(duration, 210)
+        target_duration_minutes = duration_map.get(duration, 3.5)
         
-        # Generate script using LLM with provided insights
+        # Enforce absolute maximum of 4.5 minutes
+        target_duration_minutes = min(target_duration_minutes, 4.5)
+        
+        print(f"🕐 Generating podcast with {target_duration_minutes}-minute limit")
+        
+        # Generate script using LLM with provided insights and time constraints
         # Convert Pydantic objects to dictionaries for task_modules
         insights_dict = []
         for insight in insights:
@@ -36,7 +41,8 @@ class PodcastService:
         script_data = generate_podcast_script(
             selected_text=selected_text,
             insights=insights_dict,
-            format=format
+            format=format,
+            max_duration_minutes=target_duration_minutes
         )
         
         # Convert to PodcastScript objects (without timestamp)
