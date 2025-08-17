@@ -1,20 +1,6 @@
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, 
-  ChevronDown, 
-  ChevronUp, 
-  Network, 
-  Lightbulb, 
-  Headphones, 
-  Sparkles,
-  Target,
-  AlertTriangle,
-  ArrowRight,
-  Play,
-  Mic,
-  Download
-} from 'lucide-react';
+import { X, ChevronDown, ChevronUp, Network, Lightbulb, Headphones, Sparkles } from 'lucide-react';
 import InsightsTab from './InsightsTab';
 import PodcastTab from './PodcastTab';
 
@@ -39,55 +25,30 @@ const RightPanel = ({
   goldenTransition,
   onInsightClick,
   connectionsData,
-  connectionsError
+  connectionsError,
 }) => {
-  
-  // Premium animation configurations based on golden ratio
   const goldenRatio = 1.618;
-  const premiumEasing = [0.25, 0.46, 0.45, 0.94]; // Apple's refined easing
-  
-  // State for collapsible selected text card
+  const premiumEasing = [0.25, 0.46, 0.45, 0.94];
   const [isSelectedTextExpanded, setIsSelectedTextExpanded] = useState(false);
+  const toText = useCallback((v, fallback = '') => {
+    if (v == null) return fallback;
+    if (typeof v === 'string') return v;
+    if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+    if (typeof v === 'object') {
+      if (typeof v.text === 'string') return v.text;
+      if (typeof v.name === 'string') return v.name;
+      try { return JSON.stringify(v); } catch { return fallback; }
+    }
+    try { return String(v); } catch { return fallback; }
+  }, []);
   
   const containerVariants = {
-    hidden: { 
-      opacity: 0, 
-      x: 50,
-      scale: 0.98
-    },
-    visible: { 
-      opacity: 1, 
-      x: 0,
-      scale: 1,
-      transition: {
-        type: "spring",
-        stiffness: 400,
-        damping: 30,
-        mass: 0.8,
-        staggerChildren: 0.05
-      }
-    },
-    exit: {
-      opacity: 0,
-      x: 30,
-      scale: 0.98,
-      transition: { duration: 0.3, ease: premiumEasing }
-    }
+    hidden: { opacity: 0, x: 50, scale: 0.98 },
+    visible: { opacity: 1, x: 0, scale: 1, transition: { type: 'spring', stiffness: 400, damping: 30, mass: 0.8, staggerChildren: 0.05 } },
+    exit: { opacity: 0, x: 30, scale: 0.98, transition: { duration: 0.3, ease: premiumEasing } },
   };
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20, scale: 0.95 },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
-      scale: 1,
-      transition: { 
-        type: "spring", 
-        stiffness: 500, 
-        damping: 35 
-      }
-    }
-  };
+  const itemVariants = { hidden: { opacity: 0, y: 20, scale: 0.95 }, visible: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 500, damping: 35 } } };
 
   return (
     <AnimatePresence mode="wait">
@@ -98,75 +59,20 @@ const RightPanel = ({
           animate="visible"
           exit="exit"
           className="w-[480px] bg-white/95 backdrop-blur-xl border-l border-[#E5E7EB]/20 shadow-2xl flex flex-col relative overflow-hidden"
-          style={{ 
-            backdropFilter: 'blur(20px) saturate(180%)',
-            boxShadow: '0 32px 64px -24px rgba(26, 26, 26, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.05)',
-            borderImage: 'linear-gradient(180deg, rgba(229, 231, 235, 0.2), rgba(229, 231, 235, 0.05)) 1'
-          }}
+          style={{ backdropFilter: 'blur(20px) saturate(180%)', boxShadow: '0 32px 64px -24px rgba(26, 26, 26, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.05)', borderImage: 'linear-gradient(180deg, rgba(229, 231, 235, 0.2), rgba(229, 231, 235, 0.05)) 1' }}
         >
-          {/* PREMIUM HEADER - Mathematical spacing with golden ratio */}
-          <motion.header 
-            variants={itemVariants}
-            className="relative px-6 py-2 border-b border-[#E5E7EB]/10"
-            style={{ paddingTop: `${12 * goldenRatio}px` }}
-          >
-            {/* Subtle gradient overlay for depth */}
+          <motion.header variants={itemVariants} className="relative px-6 py-2 border-b border-[#E5E7EB]/10" style={{ paddingTop: `${12 * goldenRatio}px` }}>
             <div className="absolute inset-0 bg-gradient-to-r from-[#DC2626]/3 via-transparent to-transparent" />
-            
             <div className="relative z-10">
-              {/* Header content with asymmetrical layout */}
               <div className="flex items-start justify-between mb-2">
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ 
-                    delay: 0.1, 
-                    duration: 0.6, 
-                    ease: premiumEasing 
-                  }}
-                >
-                  <h2 className="text-2xl font-black text-[#1A1A1A] tracking-tight leading-none mb-2">
-                    Smart Analysis
-                  </h2>
-                  <p className="text-[#1A1A1A] opacity-60 font-medium text-sm leading-relaxed">
-                    AI-powered insights and connections
-                  </p>
+                <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1, duration: 0.6, ease: premiumEasing }}>
+                  <h2 className="text-2xl font-black text-[#1A1A1A] tracking-tight leading-none mb-2">Smart Analysis</h2>
+                  <p className="text-[#1A1A1A] opacity-60 font-medium text-sm leading-relaxed">AI-powered insights and connections</p>
                 </motion.div>
-                
-                {/* Premium close button with micro-interaction */}
-                <motion.button
-                  onClick={() => setRightPanelVisible(false)}
-                  className="group relative p-3 rounded-xl hover:bg-[#FAFAF9] transition-all duration-300 flex-shrink-0"
-                  whileHover={{ 
-                    scale: 1.05,
-                    transition: { duration: 0.2 }
-                  }}
-                  whileTap={{ 
-                    scale: 0.95,
-                    transition: { duration: 0.1 }
-                  }}
-                  aria-label="Close analysis panel"
-                  style={{ 
-                    marginTop: `${8 * goldenRatio}px` 
-                  }}
-                >
+                <motion.button onClick={() => setRightPanelVisible(false)} className="group relative p-3 rounded-xl hover:bg-[#FAFAF9] transition-all duration-300 flex-shrink-0" whileHover={{ scale: 1.05, transition: { duration: 0.2 } }} whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}>
                   <X className="w-5 h-5 text-[#1A1A1A] opacity-50 group-hover:opacity-80 group-hover:text-[#DC2626] transition-all duration-300" />
                   <div className="absolute inset-0 bg-[#DC2626]/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  
-                  {/* Subtle ring indicator on hover */}
-                  <motion.div
-                    className="absolute inset-0 rounded-xl border-2 border-[#DC2626]/20 opacity-0 group-hover:opacity-100"
-                    initial={false}
-                    whileHover={{
-                      scale: [1, 1.05, 1],
-                      opacity: [0, 0.5, 0]
-                    }}
-                    transition={{
-                      duration: 1,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                  />
+                  <motion.div className="absolute inset-0 rounded-xl border-2 border-[#DC2626]/20 opacity-0 group-hover:opacity-100" initial={false} whileHover={{ scale: [1, 1.05, 1], opacity: [0, 0.5, 0] }} transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }} />
                 </motion.button>
               </div>
 
@@ -218,7 +124,11 @@ const RightPanel = ({
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.2 }}
                           >
-                            "{selectedTextContext.text.substring(0, 30)}..."
+                            {(() => {
+                              const s = toText(selectedTextContext.text, '');
+                              const trimmed = s.length > 30 ? s.substring(0, 30) + '...' : s;
+                              return `"${trimmed}"`;
+                            })()}
                           </motion.span>
                         )}
                         
@@ -234,7 +144,6 @@ const RightPanel = ({
                             <ChevronDown className="w-4 h-4 text-[#1A1A1A] opacity-60 group-hover:text-[#DC2626] group-hover:opacity-100" />
                           )}
                         </motion.div>
-                        
                         {/* Close button */}
                         <motion.button
                           onClick={(e) => {
@@ -275,9 +184,11 @@ const RightPanel = ({
                             }}
                           >
                             <p className="text-[#1A1A1A] text-sm leading-relaxed line-clamp-2 italic">
-                              "{selectedTextContext.text.length > 120 
-                                ? selectedTextContext.text.substring(0, 120) + '...' 
-                                : selectedTextContext.text}"
+                              {(() => {
+                                const s = toText(selectedTextContext.text, '');
+                                const trimmed = s.length > 120 ? s.substring(0, 120) + '...' : s;
+                                return `"${trimmed}"`;
+                              })()}
                             </p>
                           </motion.div>
                         </motion.div>
@@ -439,7 +350,7 @@ const RightPanel = ({
                             No connections found yet. Select text in the PDF to analyze.
                           </div>
                         )}
-                        {(connectionsData?.connections || []).map((connection, index) => (
+                        {(Array.isArray(connectionsData?.connections) ? connectionsData.connections : []).map((connection, index) => (
                           <motion.article
                             key={`${connection.title}-${index}`}
                             className="group relative bg-white/90 border border-[#E5E7EB]/20 rounded-2xl overflow-hidden cursor-pointer"
@@ -468,9 +379,7 @@ const RightPanel = ({
                                     whileHover={{ scale: 1.2 }}
                                     transition={{ duration: 0.2 }}
                                   />
-                                  <h3 className="text-lg font-bold text-[#1A1A1A] group-hover:text-[#DC2626] transition-colors duration-300">
-                                    {connection.title}
-                                  </h3>
+                                  <h3 className="text-lg font-bold text-[#1A1A1A] group-hover:text-[#DC2626] transition-colors duration-300">{toText(connection.title, 'Untitled')}</h3>
                                 </div>
                               </header>
                               <motion.blockquote 
@@ -479,9 +388,7 @@ const RightPanel = ({
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: index * 0.05 + 0.1, duration: 0.3 }}
                               >
-                                <p className="text-sm text-[#1A1A1A] opacity-80 italic leading-relaxed">
-                                  "{connection.snippet}"
-                                </p>
+                                <p className="text-sm text-[#1A1A1A] opacity-80 italic leading-relaxed">"{toText(connection.snippet, '')}"</p>
                               </motion.blockquote>
                               <footer className="space-y-2">
                                 <div className="text-xs font-medium text-[#1A1A1A] opacity-50 uppercase tracking-wide mb-3">
@@ -497,9 +404,7 @@ const RightPanel = ({
                                   <div className="flex items-center space-x-3 w-full">
                                     <div className="w-2 h-2 bg-[#DC2626] rounded-full opacity-60" />
                                     <div className='flex justify-between w-full items-center space-x-2'>
-                                      <div className="text-sm font-medium text-[#1A1A1A]">
-                                        {connection.document}
-                                      </div>
+                                      <div className="text-sm font-medium text-[#1A1A1A]">{toText(connection.document, 'Unknown')}</div>
                                       <div className="text-xs text-[#1A1A1A] opacity-60">
                                         Page {Array.isArray(connection.pages) && connection.pages.length > 0 ? connection.pages[0] : 1}
                                       </div>

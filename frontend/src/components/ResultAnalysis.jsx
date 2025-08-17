@@ -70,12 +70,35 @@ const PDFAnalysisWorkspace = () => {
   });
   const [activeTabId, setActiveTabId] = useState(() => (openTabs[0]?.id || null));
   
+  // Core UI State (must be declared before effects that reference them)
+  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
+  const [rightPanelVisible, setRightPanelVisible] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(uploadedFiles[uploadedFiles.length - 1] || null);
+  const [selectedText, setSelectedText] = useState('');
+  const [selectedTextContext, setSelectedTextContext] = useState(null);
+  const [activeInsightTab, setActiveInsightTab] = useState('connections');
+  const [connectionsData, setConnectionsData] = useState({ connections: [], summary: '', processing_time: 0 });
+  const [connectionsError, setConnectionsError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  // Insight modal state (LIFTED)
+  const [selectedInsight, setSelectedInsight] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  // PDF State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pdfZoom, setPdfZoom] = useState(1.0);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  // Analysis State
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [insightsGenerated, setInsightsGenerated] = useState(false);
+  // Podcast State
+  const [podcastGenerating, setPodcastGenerating] = useState(false);
+  
   // If no files came via navigation, try to hydrate from IndexedDB on mount
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        if (files && files.length > 0) return; // already have files
+  if (files && files.length > 0) return; // already have files
         const records = await getActivePDFs();
         if (cancelled) return;
         if (!Array.isArray(records) || records.length === 0) return;
@@ -105,20 +128,61 @@ const PDFAnalysisWorkspace = () => {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Reconcile state with IndexedDB periodically and on tab visibility changes
+  useEffect(() => {
+    let cancelled = false;
+    let intervalId;
+
+    const reconcile = async () => {
+      try {
+        const records = await getActivePDFs();
+        if (cancelled) return;
+        const byKey = new Set((records || []).map((r) => `${r.name}|${r.size}`));
+
+        // If IndexedDB is empty but we still show files, clear ghost UI state
+        if ((!records || records.length === 0) && files.length > 0) {
+          setFiles([]);
+          setOpenTabs([]);
+          setActiveTabId(null);
+          setSelectedFile(null);
+          return;
+        }
+
+        // Remove any files not present in IDB anymore
+        const filtered = files.filter((f) => byKey.has(`${f.name}|${f.size}`));
+        if (filtered.length !== files.length) {
+          setFiles(filtered);
+          // Also trim tabs
+          setOpenTabs((prev) => prev.filter((t) => byKey.has(`${t.file?.name}|${t.file?.size}`)));
+          if (selectedFile && !byKey.has(`${selectedFile.name}|${selectedFile.size}`)) {
+            setSelectedFile(filtered[0] || null);
+            setActiveTabId((prevId) => {
+              const first = filtered[0];
+              const tab = first ? `${first.id || first.name}-${Date.now()}` : null;
+              return tab;
+            });
+          }
+        }
+      } catch {}
+    };
+
+    // Run on interval
+    intervalId = window.setInterval(reconcile, 2500);
+
+    // Run when page becomes visible (e.g., after user clears storage)
+    const onVis = () => { if (document.visibilityState === 'visible') reconcile(); };
+    document.addEventListener('visibilitychange', onVis);
+    // Initial reconcile once
+    reconcile();
+
+    return () => {
+      cancelled = true;
+      if (intervalId) window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, [files, selectedFile]);
   
-  // Core UI State
-  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
-  const [rightPanelVisible, setRightPanelVisible] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(uploadedFiles[uploadedFiles.length - 1] || null);
-  const [selectedText, setSelectedText] = useState('');
-  const [selectedTextContext, setSelectedTextContext] = useState(null);
-  const [activeInsightTab, setActiveInsightTab] = useState('connections');
-  const [connectionsData, setConnectionsData] = useState({ connections: [], summary: '', processing_time: 0 });
-  const [connectionsError, setConnectionsError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  // Insight modal state (LIFTED)
-  const [selectedInsight, setSelectedInsight] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   // Handler to open modal from anywhere
   const handleInsightClick = (insight) => {
     setSelectedInsight(insight);
@@ -128,18 +192,6 @@ const PDFAnalysisWorkspace = () => {
     setIsModalOpen(false);
     setSelectedInsight(null);
   };
-  
-  // PDF State
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pdfZoom, setPdfZoom] = useState(1.0);
-  const [pdfLoading, setPdfLoading] = useState(false);
-  
-  // Analysis State
-  const [analysisLoading, setAnalysisLoading] = useState(false);
-  const [insightsGenerated, setInsightsGenerated] = useState(false);
-  
-  // Podcast State
-  const [podcastGenerating, setPodcastGenerating] = useState(false);
 
   // Kick off connections fetch when text is selected and panel shows
   React.useEffect(() => {
@@ -151,7 +203,8 @@ const PDFAnalysisWorkspace = () => {
         setAnalysisLoading(true);
         const payload = {
           selected_text: selectedTextContext.text,
-          current_document_id: selectedFile.id || selectedFile.name,
+          // Coerce to string to satisfy backend (pydantic expects string)
+          current_document_id: String(selectedFile.id || selectedFile.name || ''),
           current_page: selectedTextContext.page || 1,
           context_before: '',
           context_after: '',
