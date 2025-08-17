@@ -17,6 +17,8 @@ const LeftPanel = ({
   goldenTransition,
   rightPanelVisible,
   onFileUpload,
+  onFileDelete,
+  setRightPanelVisible, // Add this prop to control right panel
 }) => {
   const [visitedFiles, setVisitedFiles] = useState(new Set());
   const fileInputRef = useRef(null);
@@ -27,6 +29,16 @@ const LeftPanel = ({
       toggleLeftPanel();
     }
   }, [rightPanelVisible, leftPanelCollapsed, toggleLeftPanel]);
+
+  // Enhanced toggle function that closes right panel when expanding left panel
+  const handleToggleLeftPanel = useCallback(() => {
+    // If left panel is collapsed and right panel is open, close right panel first
+    if (leftPanelCollapsed && rightPanelVisible && setRightPanelVisible) {
+      setRightPanelVisible(false);
+    }
+    // Then toggle the left panel
+    toggleLeftPanel();
+  }, [leftPanelCollapsed, rightPanelVisible, setRightPanelVisible, toggleLeftPanel]);
 
   const handleSearchModeChange = useCallback((mode) => {
     setSearchMode(mode);
@@ -39,6 +51,20 @@ const LeftPanel = ({
     setVisitedFiles((prev) => new Set([...prev, file.id]));
     handleFileSelect(file);
   }, [handleFileSelect]);
+
+  const handleFileDelete = useCallback((fileId) => {
+    // Remove from visited files if it was visited
+    setVisitedFiles((prev) => {
+      const newVisited = new Set(prev);
+      newVisited.delete(fileId);
+      return newVisited;
+    });
+    
+    // Call parent delete handler
+    if (onFileDelete) {
+      onFileDelete(fileId);
+    }
+  }, [onFileDelete]);
 
   const handleUploadClick = useCallback(() => {
     if (fileInputRef.current) fileInputRef.current.click();
@@ -84,7 +110,7 @@ const LeftPanel = ({
         }}
       >
         {/* Header */}
-        <div className="py-2 pl-6 pr-2 border-b border-[#E5E7EB]/20 flex items-center justify-between relative">
+        <div className={`py-2 ${leftPanelCollapsed ? 'px-2' : 'pl-6 pr-2'} border-b border-[#E5E7EB]/20 flex items-center justify-between relative`}>
           <AnimatePresence mode="wait">
             {!leftPanelCollapsed && (
               <motion.div
@@ -118,8 +144,8 @@ const LeftPanel = ({
           </AnimatePresence>
 
           <motion.button
-            onClick={toggleLeftPanel}
-            className="p-3 rounded-xl hover:bg-[#E5E7EB]/50 transition-all duration-300 relative group"
+            onClick={handleToggleLeftPanel}
+            className={`p-3 rounded-xl hover:bg-[#E5E7EB]/50 transition-all duration-300 relative group ${leftPanelCollapsed ? 'w-full flex justify-center' : ''}`}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             aria-label={leftPanelCollapsed ? 'Expand library' : 'Collapse library'}
@@ -186,6 +212,7 @@ const LeftPanel = ({
                   formatTimestamp={formatTimestamp}
                   visitedFiles={visitedFiles}
                   leftPanelCollapsed={leftPanelCollapsed}
+                  onFileDelete={handleFileDelete}
                 />
               ) : (
                 <SemanticSearch
@@ -201,18 +228,20 @@ const LeftPanel = ({
             </div>
           )}
 
+          {/* Collapsed view - only back button and files */}
           {leftPanelCollapsed && (
-            <div className="p-3 space-y-3 w-full overflow-hidden">
+            <div className="flex-1 overflow-hidden pt-2 px-1">
               <FilenameSearch
                 filteredFiles={filteredFiles}
                 selectedFile={selectedFile}
                 handleFileSelectWithVisit={handleFileSelectWithVisit}
-                searchTerm={searchTerm}
-                handleSearchChange={handleSearchChange}
+                searchTerm=""
+                handleSearchChange={() => {}}
                 formatFileSize={formatFileSize}
                 formatTimestamp={formatTimestamp}
                 visitedFiles={visitedFiles}
                 leftPanelCollapsed={leftPanelCollapsed}
+                onFileDelete={handleFileDelete}
               />
             </div>
           )}
