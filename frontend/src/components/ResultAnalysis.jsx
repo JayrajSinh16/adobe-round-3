@@ -12,7 +12,7 @@ import CenterPanel from './CenterPanel';
 import RightPanel from './RightPanel';
 import InsightDetailModal from './modals/InsightDetailModal';
 import { uploadDocuments, findConnections } from '../services/api';
-import { getActivePDFs, upsertPDFs } from '../utils/pdfDb';
+import { getActivePDFs, upsertPDFs, deletePDF } from '../utils/pdfDb';
 
 const PDFAnalysisWorkspace = () => {
   const location = useLocation();
@@ -427,6 +427,57 @@ const PDFAnalysisWorkspace = () => {
     });
   }, [files, setRightPanelVisible]);
 
+  // Enhanced file delete handler
+  const handleFileDelete = useCallback(async (fileId) => {
+    try {
+      // Find the file to delete
+      const fileToDelete = files.find(f => f.id === fileId);
+      if (!fileToDelete) {
+        toast.error('File not found');
+        return;
+      }
+
+      // Remove from IndexedDB
+      try {
+        await deletePDF(fileId);
+      } catch (e) {
+        console.warn('Failed to delete from IndexedDB:', e);
+        // Continue with state deletion even if IndexedDB fails
+      }
+
+      // Remove from state
+      setFiles(prev => prev.filter(f => f.id !== fileId));
+      
+      // Close any tabs for this file
+      setOpenTabs(prev => prev.filter(tab => tab.file?.id !== fileId));
+      
+      // If this was the selected file, select another one or null
+      if (selectedFile?.id === fileId) {
+        const remainingFiles = files.filter(f => f.id !== fileId);
+        setSelectedFile(remainingFiles.length > 0 ? remainingFiles[0] : null);
+        
+        // If no files left and we have tabs, switch to first tab or clear active tab
+        if (remainingFiles.length === 0) {
+          setActiveTabId(null);
+        } else {
+          // Switch to first remaining tab if current tab was deleted
+          setOpenTabs(prev => {
+            const remainingTabs = prev.filter(tab => tab.file?.id !== fileId);
+            if (remainingTabs.length > 0) {
+              setActiveTabId(remainingTabs[0].id);
+            }
+            return remainingTabs;
+          });
+        }
+      }
+
+      toast.success(`${fileToDelete.name} deleted successfully`);
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      toast.error('Failed to delete file');
+    }
+  }, [files, selectedFile, setOpenTabs, setActiveTabId]);
+
   // Format utilities
   const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 Bytes';
@@ -744,7 +795,9 @@ const PDFAnalysisWorkspace = () => {
           formatTimestamp={formatTimestamp}
           goldenTransition={goldenTransition}
           rightPanelVisible={rightPanelVisible}
+          setRightPanelVisible={setRightPanelVisible}
           onFileUpload={handleFileUpload}
+          onFileDelete={handleFileDelete}
         />
 
         {/* CENTER PANEL - Premium PDF Viewer */}

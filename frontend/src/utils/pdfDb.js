@@ -179,3 +179,26 @@ export function dataUrlToBlob(dataUrl) {
     return null;
   }
 }
+
+export async function deletePDF(id) {
+  // Delete a single PDF by ID
+  if (!id) return false;
+  let db;
+  try {
+    db = await openDB();
+  } catch (e) {
+    console.warn('IndexedDB unavailable:', e?.message || e);
+    return false;
+  }
+
+  return new Promise((resolve) => {
+    try {
+      const store = tx(db, 'readwrite');
+      const req = store.delete(id);
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => resolve(false);
+    } catch (e) {
+      resolve(false);
+    }
+  });
+}

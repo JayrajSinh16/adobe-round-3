@@ -270,7 +270,7 @@ const DocumentUploader = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
           >
-            <h1 className="text-xl md:text-4xl font-black text-[#1A1A1A] mb-2 leading-[0.85] tracking-tight">
+            <h1 className="text-xl md:text-5xl font-black text-[#1A1A1A] mb-2 leading-[0.85] tracking-tight">
               Document 
               <span className=" text-[#DC2626]"> Experience</span>
             </h1>
