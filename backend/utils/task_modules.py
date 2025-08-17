@@ -218,72 +218,372 @@ class ContentGenerator:
     def __init__(self):
         self.client = get_llm_client()
     
-    def generate_podcast_script(self, selected_text: str, connections: List[Dict], insights: List[Dict], format: str = "podcast") -> List[Dict]:
-        """Generate podcast script or audio overview"""
+    def generate_podcast_script(self, selected_text: str, insights: List[Dict], format: str = "podcast", max_duration_minutes: float = 4.5) -> List[Dict]:
+        """Generate natural, informative podcast script with human-like expressions and strict time limits"""
         pdf_context = get_pdf_context()
         
+        # Calculate maximum words based on duration limit
+        # Assuming average 160 WPM speech rate
+        max_words = int(max_duration_minutes * 160)
+        target_exchanges = min(20, max(12, int(max_words / 25)))  # 25 words per exchange average
+        
+        print(f"🕐 Time limit: {max_duration_minutes} minutes ({max_words} words max, {target_exchanges} exchanges)")
+        
+        # Format insights for better LLM understanding
+        insights_summary = self._format_insights_for_prompt(insights)
+        
         if format == "podcast":
-            system_prompt = """You are a professional podcast script writer with access to a document library. Your task is to write dialogue between a Host (who asks questions) and an Expert (who provides detailed answers) while incorporating relevant information from the available documents. Make the conversation flow naturally with realistic speech patterns. The Host should be curious and ask insightful follow-up questions. The Expert should be knowledgeable, provide clear explanations, and reference the document library when relevant. Always format your response as valid JSON with speaker and text fields. Keep the dialogue relevant to the uploaded documents."""
+            system_prompt = f"""You are a professional podcast script writer creating natural, engaging dialogue between Alex (Host - Female) and Jamie (Expert - Male). 
+
+CRITICAL TIME CONSTRAINTS:
+1. MAXIMUM DURATION: {max_duration_minutes} minutes ({max_words} words total)
+2. TARGET EXCHANGES: {target_exchanges} back-and-forth conversations
+3. AVERAGE per exchange: 25-30 words maximum
+4. You MUST respond with ONLY valid JSON - no other text, no explanations, no markdown
+
+NATURAL VOICE CHARACTERISTICS:
+Alex (Female Host):
+- Slightly higher pitch, friendly, curious tone
+- Uses "So", "Right?", "That's fascinating"
+- Natural fillers: "um", "you know", "like"
+- Asks engaging follow-up questions
+
+Jamie (Male Expert):
+- Deeper voice, authoritative but approachable
+- Uses "Actually", "Basically", "I mean"
+- Natural fillers: "uh", "well", "honestly"
+- Provides detailed explanations
+
+CONVERSATION REQUIREMENTS:
+1. NO generic greetings like "Welcome to our podcast"
+2. Start mid-conversation style: "So Jamie, I've been thinking about..."
+3. Include natural speech patterns and fillers
+4. Use conversational flow with natural interruptions
+5. Include detailed, informative content from insights
+6. End naturally without formal conclusions
+
+STRICT WORD COUNT MANAGEMENT:
+- Keep each exchange concise but informative
+- Prioritize key insights over lengthy explanations
+- Use natural speech compression techniques
+- Aim for exactly {target_exchanges} exchanges
+
+EXACT JSON FORMAT:
+[
+  {{"speaker": "Alex", "text": "Your natural dialogue here"}},
+  {{"speaker": "Jamie", "text": "Your detailed response here"}}
+]"""
             
-            user_prompt = f"""Document Library Context:
-{pdf_context}
+            user_prompt = f"""Create a natural conversation about: {selected_text}
 
-Create a 2-3 minute podcast dialogue (300-450 words) about this topic, incorporating relevant information from the document library:
+Available insights with detailed information:
+{insights_summary}
 
-Main topic: {selected_text}
+START NATURALLY: Begin with something like "So Alex, we're here to discuss [topic]..." or "You know Jamie, I've been looking into [topic]..."
 
-Related information: {str(connections)[:300]}...
+CONVERSATION FLOW:
+1. Direct topic introduction (no formal greetings)
+2. Explore each insight in detail with 2-3 informative sentences
+3. Ask natural follow-up questions
+4. Make connections between different insights
+5. Use natural speech fillers and expressions
+6. Provide specific examples and details
+7. Create 15-20 exchanges for proper length
 
-Key insights: {str(insights)[:300]}...
+Focus on being informative while maintaining natural conversation flow. Include specific details from the source documents.
 
-Format as JSON array with objects containing:
-- "speaker": "Host" or "Expert"
-- "text": what they say
-
-Make sure to reference relevant documents from the library in the conversation."""
+Output pure JSON only - no markdown, no explanations."""
         
         else:  # overview format
-            system_prompt = """You are a professional audio content creator with access to a document library. Your task is to create smooth, informative overview scripts that sound natural when read aloud while incorporating relevant information from the available documents. Use transitions that flow well and maintain listener engagement throughout. Always format your response as valid JSON. Reference relevant documents from the library in your narration."""
+            system_prompt = """You are a professional audio narrator creating a comprehensive overview. 
+
+CRITICAL: You MUST respond with ONLY valid JSON format. No markdown, no explanations, no backticks, just pure JSON.
+
+Create a 3-5 minute detailed overview with natural pacing and informative content.
+
+EXACT OUTPUT FORMAT:
+[
+  {
+    "speaker": "Narrator",
+    "text": "Complete detailed narration text here..."
+  }
+]"""
             
-            user_prompt = f"""Document Library Context:
-{pdf_context}
+            user_prompt = f"""Create a comprehensive 3-5 minute audio overview about: {selected_text}
 
-Create a 2-3 minute audio overview (300-450 words) about this topic, incorporating relevant information from the document library:
+Available insights to incorporate:
+{insights_summary}
 
-Main topic: {selected_text}
+Create a flowing, detailed narrative that incorporates all key insights with specific information and examples. Use natural pacing with occasional pauses indicated by "..." 
 
-Related information: {str(connections)[:300]}...
-
-Key insights: {str(insights)[:300]}...
-
-Format as JSON array with a single object:
-- "speaker": "Narrator"
-- "text": the complete narration
-
-Make sure to reference relevant documents from the library in the narration."""
+Remember: Respond with ONLY the JSON array, no other text."""
         
         response = self.client.generate(
             prompt=user_prompt,
-            max_tokens=300,  # Conservative for free tier
-            temperature=0.8,
+            max_tokens=1200,  # Increased significantly for longer content
+            temperature=0.8,  # Increased for more natural variation
             system_prompt=system_prompt
         )
+        
+        # Clean response and parse JSON more robustly
+        response = response.strip()
+        
+        # Remove markdown code blocks
+        if response.startswith('```json'):
+            response = response[7:]
+        elif response.startswith('```'):
+            response = response[3:]
+        
+        if response.endswith('```'):
+            response = response[:-3]
+        
+        response = response.strip()
+        
+        # Try to fix common JSON issues
+        response = self._fix_json_response(response)
         
         try:
             import json
             script = json.loads(response)
             if not isinstance(script, list):
-                script = [script]
-            return script
-        except:
-            # Fallback if JSON parsing fails
-            if format == "podcast":
-                return [
-                    {"speaker": "Host", "text": "Today we're discussing an interesting topic from our document library."},
-                    {"speaker": "Expert", "text": response}
-                ]
+                script = [script] if isinstance(script, dict) else []
+            
+            # Validate structure and apply time constraints
+            valid_script = []
+            total_words = 0
+            
+            for segment in script:
+                if isinstance(segment, dict) and 'speaker' in segment and 'text' in segment:
+                    # Clean up text content
+                    text = segment['text'].strip()
+                    if text:
+                        word_count = len(text.split())
+                        
+                        # Check if adding this segment would exceed time limit
+                        if total_words + word_count <= max_words:
+                            valid_script.append({
+                                "speaker": segment['speaker'],
+                                "text": text
+                            })
+                            total_words += word_count
+                        else:
+                            print(f"⏰ Stopping at segment {len(valid_script)+1} to stay within {max_duration_minutes} minute limit")
+                            break
+            
+            # Calculate estimated duration
+            estimated_duration = total_words / 160  # 160 WPM average
+            
+            print(f"📊 Generated script: {len(valid_script)} segments, {total_words} words, ~{estimated_duration:.1f} minutes")
+            
+            # Validate minimum and maximum length
+            if len(valid_script) < 8 and format == "podcast":
+                print("⚠️ Generated script too short, using extended fallback with time limits")
+                return self._get_extended_fallback_script(format, selected_text, insights, max_duration_minutes)
+            
+            if estimated_duration > max_duration_minutes:
+                print(f"⚠️ Script exceeds time limit, truncating to {max_duration_minutes} minutes")
+                valid_script = self._truncate_script_to_time_limit(valid_script, max_duration_minutes)
+            
+            return valid_script if valid_script else self._get_extended_fallback_script(format, selected_text, insights, max_duration_minutes)
+            
+        except Exception as e:
+            print(f"JSON parsing error: {e}")
+            print(f"Raw response: {response[:200]}...")
+            return self._get_extended_fallback_script(format, selected_text, insights, max_duration_minutes)
+    
+    def _truncate_script_to_time_limit(self, script: List[Dict], max_duration_minutes: float) -> List[Dict]:
+        """Truncate script to fit within time limit"""
+        max_words = int(max_duration_minutes * 160)
+        
+        truncated_script = []
+        total_words = 0
+        
+        for segment in script:
+            text = segment['text']
+            word_count = len(text.split())
+            
+            if total_words + word_count <= max_words:
+                truncated_script.append(segment)
+                total_words += word_count
             else:
-                return [{"speaker": "Narrator", "text": response}]
+                # Try to fit a partial segment if there's remaining capacity
+                remaining_words = max_words - total_words
+                if remaining_words > 10:  # Only if we can fit at least 10 words
+                    words = text.split()
+                    truncated_text = ' '.join(words[:remaining_words])
+                    if truncated_text.endswith((',', 'and', 'or', 'but')):
+                        # Remove incomplete trailing words
+                        truncated_text = ' '.join(words[:remaining_words-1])
+                    
+                    truncated_script.append({
+                        "speaker": segment['speaker'],
+                        "text": truncated_text + "..."
+                    })
+                break
+        
+        print(f"⏱️ Script truncated to {len(truncated_script)} segments ({total_words} words)")
+        return truncated_script
+    
+    def _fix_json_response(self, response: str) -> str:
+        """Fix common JSON formatting issues"""
+        import re
+        
+        # Fix unterminated strings by finding the last complete object
+        try:
+            # Find the last complete JSON object/array
+            stack = []
+            last_valid_pos = 0
+            
+            for i, char in enumerate(response):
+                if char == '[':
+                    stack.append('[')
+                elif char == ']':
+                    if stack and stack[-1] == '[':
+                        stack.pop()
+                        if not stack:  # Complete array
+                            last_valid_pos = i + 1
+                elif char == '{':
+                    stack.append('{')
+                elif char == '}':
+                    if stack and stack[-1] == '{':
+                        stack.pop()
+            
+            if last_valid_pos > 0:
+                response = response[:last_valid_pos]
+            
+            # Fix common quote issues
+            response = re.sub(r'([^\\])"([^"]*?)([^\\])"([^,}\]]*)', r'\1"\2\3"\4', response)
+            
+            return response
+            
+        except Exception:
+            return response
+    
+    def _get_fallback_script(self, format: str, selected_text: str) -> List[Dict]:
+        """Get basic fallback script if JSON parsing fails"""
+        if format == "podcast":
+            return [
+                {"speaker": "Alex", "text": f"So Jamie, we're here to discuss {selected_text}."},
+                {"speaker": "Jamie", "text": "That's right Alex. This is actually a really fascinating topic with, uh, quite a bit of depth to it."},
+                {"speaker": "Alex", "text": "What makes this particularly interesting to you?"},
+                {"speaker": "Jamie", "text": "Well, you know, when you look at the details, there are some really compelling aspects that most people don't realize."}
+            ]
+        else:
+            return [{"speaker": "Narrator", "text": f"Today we explore {selected_text}, uncovering its significance and key insights from our comprehensive analysis."}]
+    
+    def _get_extended_fallback_script(self, format: str, selected_text: str, insights: List[Dict], max_duration_minutes: float = 4.5) -> List[Dict]:
+        """Get comprehensive fallback script with natural conversation and strict time limits"""
+        if format == "podcast":
+            # Calculate word limits based on duration
+            max_words = int(max_duration_minutes * 160)  # 160 WPM
+            target_segments = min(16, max(8, max_words // 30))  # 30 words per segment
+            
+            print(f"🕐 Fallback script: {max_words} words max, {target_segments} segments")
+            
+            # Extract key topics from insights, or create synthetic topics
+            topics = []
+            if insights and len(insights) > 0:
+                for insight in insights[:2]:  # Reduced to 2 insights for time constraint
+                    if isinstance(insight, dict):
+                        title = insight.get('title', 'Key Point')
+                        content = insight.get('content', 'Interesting information')
+                        topics.append({'title': title, 'content': content[:100]})  # Very short content for time limits
+            else:
+                # Create concise synthetic topics when no insights are available
+                topics = [
+                    {'title': 'Key Aspects', 'content': f'The main aspects of {selected_text} include several important elements.'},
+                    {'title': 'Modern Relevance', 'content': f'Today, {selected_text} continues to be significant in various ways.'}
+                ]
+            
+            # Start with concise opening
+            script = [
+                {"speaker": "Alex", "text": f"So Jamie, I've been looking into {selected_text}."},
+                {"speaker": "Jamie", "text": "That's great, Alex. What did you find most interesting?"},
+                {"speaker": "Alex", "text": "Well, there are several key points worth discussing."},
+                {"speaker": "Jamie", "text": "Absolutely. Let's dive into those."}
+            ]
+            
+            current_words = sum(len(segment['text'].split()) for segment in script)
+            
+            # Add content based on topics (keeping it very concise)
+            for i, topic in enumerate(topics):
+                if current_words >= max_words:
+                    break
+                    
+                new_segments = []
+                if i == 0:
+                    new_segments = [
+                        {"speaker": "Jamie", "text": f"First, about {topic['title'].lower()}. {topic['content'][:60]}"},
+                        {"speaker": "Alex", "text": "That's interesting. Can you tell us more?"},
+                        {"speaker": "Jamie", "text": "Yes, this connects to the broader picture quite well."}
+                    ]
+                elif i == 1:
+                    new_segments = [
+                        {"speaker": "Alex", "text": f"What about {topic['title'].lower()}?"},
+                        {"speaker": "Jamie", "text": f"{topic['content'][:60]} This shows the connections."},
+                        {"speaker": "Alex", "text": "That makes sense."}
+                    ]
+                
+                # Check if adding new segments would exceed word limit
+                segment_words = sum(len(seg['text'].split()) for seg in new_segments)
+                if current_words + segment_words <= max_words:
+                    script.extend(new_segments)
+                    current_words += segment_words
+                else:
+                    # Add minimal content if there's room
+                    remaining_words = max_words - current_words
+                    if remaining_words > 10:
+                        script.append({
+                            "speaker": "Jamie", 
+                            "text": f"Another key point is {topic['title'].lower()}."
+                        })
+                    break
+            
+            # Add brief conclusion only if we have room
+            if current_words < max_words - 15:
+                script.extend([
+                    {"speaker": "Alex", "text": "Thanks for sharing these insights, Jamie."},
+                    {"speaker": "Jamie", "text": "My pleasure. Great discussion, Alex."}
+                ])
+            
+            # Final word count check and truncation
+            final_words = sum(len(segment['text'].split()) for segment in script)
+            if final_words > max_words:
+                print(f"⚠️ Fallback script exceeds word limit, truncating...")
+                script = self._truncate_script_to_time_limit(script, max_duration_minutes)
+            
+            print(f"📊 Fallback script: {len(script)} segments, {sum(len(s['text'].split()) for s in script)} words")
+            return script
+        else:
+            # Extended narrator format
+            content = f"Today we explore {selected_text}, uncovering key insights."
+            return [{"speaker": "Narrator", "text": content}]
+    
+    def _format_insights_for_prompt(self, insights: List[Dict]) -> str:
+        """Format insights for LLM prompt"""
+        if not insights:
+            return "No specific insights available."
+        
+        formatted_insights = []
+        for insight in insights:
+            insight_type = insight.get('type', 'unknown')
+            title = insight.get('title', 'Insight')
+            content = insight.get('content', '').strip()
+            confidence = insight.get('confidence', 0.0)
+            
+            # Get source documents
+            sources = insight.get('source_documents', [])
+            source_names = [doc.get('pdf_name', 'Unknown') for doc in sources[:3]]  # Limit to 3
+            
+            formatted_insight = f"""
+{title} ({insight_type.replace('_', ' ').title()}):
+{content}
+Sources: {', '.join(source_names) if source_names else 'Various documents'}
+Confidence: {confidence}
+"""
+            formatted_insights.append(formatted_insight.strip())
+        
+        return '\n\n'.join(formatted_insights)
 
 
 # Task-specific instances

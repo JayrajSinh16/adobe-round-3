@@ -77,20 +77,66 @@ class DocumentService:
             counter += 1
         return final
 
+    def _check_duplicate_document(self, filename: str) -> Optional[DocumentInfo]:
+        """
+        Check if document with same name already exists with all required files
+        Returns existing DocumentInfo if duplicate found, None otherwise
+        """
+        # Check if document already exists by filename
+        existing_doc = self.get_document_by_filename(filename)
+        if not existing_doc:
+            return None
+        
+        # Verify all required files exist
+        pdf_exists = os.path.exists(existing_doc.filepath)
+        if not pdf_exists:
+            print(f"⚠️ PDF file missing for {filename}, allowing re-upload")
+            return None
+        
+        # Check if outline exists
+        base_name = os.path.splitext(filename)[0]
+        outline_path = os.path.join(settings.outline_folder, f"{base_name}.json")
+        outline_exists = os.path.exists(outline_path)
+        if not outline_exists:
+            print(f"⚠️ Outline missing for {filename}, allowing re-upload")
+            return None
+        
+        # Check if properly mapped in index
+        is_mapped = existing_doc.id in self._id_filename_map
+        if not is_mapped:
+            print(f"⚠️ Document not properly indexed for {filename}, allowing re-upload")
+            return None
+        
+        print(f"🔍 Duplicate detected: {filename} already exists with all files")
+        return existing_doc
+
     async def upload_document(self, file: UploadFile) -> DocumentInfo:
         """Upload a new document keeping original filename and outline base.
+        - Checks for duplicates before uploading
         - Stores PDF with user provided name (sanitized & deduplicated)
         - Outline JSON saved as <original_base>.json
         - Maintains internal ID for referencing
         """
+        # Sanitize filename first
+        original_name = self._sanitize_filename(file.filename)
+        if not original_name.lower().endswith('.pdf'):
+            original_name += '.pdf'
+        
+        # Check for duplicates before processing
+        duplicate_doc = self._check_duplicate_document(original_name)
+        if duplicate_doc:
+            print(f"✅ Returning existing document: {original_name}")
+            return duplicate_doc
+        
+        print(f"📄 Processing new document upload: {original_name}")
+        
         # Ensure storage directories exist
         os.makedirs(settings.upload_folder, exist_ok=True)
         os.makedirs(settings.outline_folder, exist_ok=True)
 
         doc_id = str(uuid.uuid4())
-        original_name = self._sanitize_filename(file.filename)
-        if not original_name.lower().endswith('.pdf'):
-            original_name += '.pdf'
+        
+        # Ensure unique filename (in case of race conditions)
         original_name = self._ensure_unique_filename(original_name)
         filepath = os.path.join(settings.upload_folder, original_name)
 
@@ -99,17 +145,21 @@ class DocumentService:
             content = await file.read()
             await f.write(content)
 
+        print(f"💾 Saved PDF: {filepath}")
+
         pdf_info = extract_pdf_info(filepath)
 
         # Generate & persist outline with same base name
+        print(f"📋 Generating outline...")
         outline = generate_pdf_outline(filepath)
         base_name = os.path.splitext(original_name)[0]
         outline_path = os.path.join(settings.outline_folder, f"{base_name}.json")
         try:
             with open(outline_path, 'w', encoding='utf-8') as f:
                 json.dump(outline, f, indent=2, ensure_ascii=False)
+            print(f"💾 Saved outline: {outline_path}")
         except Exception as e:
-            print(f"Failed to write outline for {original_name}: {e}")
+            print(f"❌ Failed to write outline for {original_name}: {e}")
             outline_path = None
 
         doc_info = DocumentInfo(
@@ -125,6 +175,7 @@ class DocumentService:
         # Persist mapping index
         self._id_filename_map[doc_id] = original_name
         self._save_index()
+        print(f"📝 Updated document index")
 
         self.documents[doc_id] = doc_info
 
@@ -137,23 +188,38 @@ class DocumentService:
                 delattr(connection_service, 'heading_metadata')
             if hasattr(connection_service, 'document_vectors'):
                 connection_service.document_vectors = {}
+            print(f"🔄 Refreshed search indexes")
         except Exception as e:
-            print(f"Index refresh warning: {e}")
+            print(f"⚠️ Index refresh warning: {e}")
 
+        print(f"✅ Document upload completed: {original_name}")
         return doc_info
     
     async def bulk_upload_documents(self, files: List[UploadFile]) -> List[DocumentInfo]:
-        """Upload multiple documents"""
+        """Upload multiple documents with duplicate checking"""
         documents = []
-        for file in files:
-            doc = await self.upload_document(file)
-            documents.append(doc)
+        print(f"📦 Bulk upload started: {len(files)} files")
+        
+        for i, file in enumerate(files, 1):
+            print(f"📄 Processing file {i}/{len(files)}: {file.filename}")
+            try:
+                doc = await self.upload_document(file)
+                documents.append(doc)
+                print(f"✅ File {i} completed: {doc.filename}")
+            except Exception as e:
+                print(f"❌ File {i} failed ({file.filename}): {e}")
+                # Continue with other files instead of failing entire batch
+                continue
+        
         # After bulk upload ensure index built once (local import to avoid circular)
         try:
             from services.search_service import search_service  # local import
             search_service._build_search_index()
+            print(f"🔄 Bulk upload index refresh completed")
         except Exception as e:
-            print(f"Bulk index build warning: {e}")
+            print(f"⚠️ Bulk index build warning: {e}")
+        
+        print(f"📦 Bulk upload completed: {len(documents)}/{len(files)} successful")
         return documents
     
     def get_document(self, doc_id: str) -> Optional[DocumentInfo]:
