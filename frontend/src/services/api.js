@@ -165,6 +165,29 @@ export const downloadPodcast = async (podcastId) => {
 
 export default api;
 
+// Search API functions
+export const searchHeadings = async (query, limit = 10) => {
+  try {
+    const response = await api.get('/api/search/headings', {
+      params: { query, limit }
+    });
+    return response.data;
+  } catch (error) {
+    const msg = error.response?.data?.detail || error.response?.data?.message || 'Failed to search headings';
+    throw new Error(msg);
+  }
+};
+
+export const getHeadingsByLevel = async (level) => {
+  try {
+    const response = await api.get(`/api/search/by-level/${level}`);
+    return response.data;
+  } catch (error) {
+    const msg = error.response?.data?.detail || error.response?.data?.message || 'Failed to get headings by level';
+    throw new Error(msg);
+  }
+};
+
 // Connections: find cross-document connections for selected text
 export const findConnections = async ({ selected_text, current_document_id, current_page, context_before = '', context_after = '' }) => {
   try {
