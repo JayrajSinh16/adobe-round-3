@@ -41,7 +41,6 @@ backend/**/*.pyd
 
 # Backend runtime artifacts
 storage/
-storage/documents_index.json
 
 # Frontend build artifacts (monorepo layout)
 frontend/node_modules/

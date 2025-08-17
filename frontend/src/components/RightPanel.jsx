@@ -37,7 +37,9 @@ const RightPanel = ({
   setActiveInsightTab,
   handleGeneratePodcast,
   goldenTransition,
-  onInsightClick
+  onInsightClick,
+  connectionsData,
+  connectionsError
 }) => {
   
   // Premium animation configurations based on golden ratio
@@ -427,40 +429,25 @@ const RightPanel = ({
 
                       {/* Elegant connection cards */}
                       <div className="space-y-4">
-                        {[
-                          {
-                            title: 'Transfer Learning Patterns',
-                            type: 'concept',
-                            documents: ['Deep Learning Fundamentals.pdf'],
-                            pages: [15, 23],
-                            snippet: 'Both documents emphasize the importance of pre-trained models in reducing computational overhead and achieving faster convergence.',
-                            strength: 'high'
-                          },
-                          {
-                            title: 'Neural Network Architecture',
-                            type: 'technical',
-                            documents: ['Technical Implementation.pdf'],
-                            pages: [8, 12],
-                            snippet: 'Similar architectural approaches to convolutional layers and optimization strategies for enterprise deployment.',
-                            strength: 'medium'
-                          },
-                          {
-                            title: 'Machine Learning Ethics',
-                            type: 'governance',
-                            documents: ['Ethics in AI.pdf'],
-                            pages: [4, 18],
-                            snippet: 'Consistent emphasis on responsible AI development and comprehensive bias mitigation strategies.',
-                            strength: 'medium'
-                          }
-                        ].map((connection, index) => (
+                        {connectionsError && (
+                          <div className="p-4 border border-red-200 bg-red-50 text-sm text-red-700 rounded-xl">
+                            {connectionsError}
+                          </div>
+                        )}
+                        {!connectionsError && (connectionsData?.connections || []).length === 0 && (
+                          <div className="p-4 border border-gray-200 bg-gray-50 text-sm text-gray-700 rounded-xl">
+                            No connections found yet. Select text in the PDF to analyze.
+                          </div>
+                        )}
+                        {(connectionsData?.connections || []).map((connection, index) => (
                           <motion.article
-                            key={index}
+                            key={`${connection.title}-${index}`}
                             className="group relative bg-white/90 border border-[#E5E7EB]/20 rounded-2xl overflow-hidden cursor-pointer"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ 
-                              delay: index * 0.1, 
-                              duration: 0.4,
+                              delay: index * 0.05, 
+                              duration: 0.3,
                               ease: premiumEasing
                             }}
                             whileHover={{ 
@@ -474,7 +461,6 @@ const RightPanel = ({
                             }}
                           >
                             <div className="p-4">
-                              {/* Clean header */}
                               <header className="flex items-start justify-between mb-2">
                                 <div className="flex items-center space-x-3 flex-1">
                                   <motion.div 
@@ -487,46 +473,39 @@ const RightPanel = ({
                                   </h3>
                                 </div>
                               </header>
-                              
-                              {/* Quote with minimal styling */}
                               <motion.blockquote 
                                 className="bg-[#FAFAF9]/60 border-l-3 border-[#DC2626] pl-4 py-1 mb-2 rounded-r-lg"
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: index * 0.1 + 0.2, duration: 0.4 }}
+                                transition={{ delay: index * 0.05 + 0.1, duration: 0.3 }}
                               >
                                 <p className="text-sm text-[#1A1A1A] opacity-80 italic leading-relaxed">
                                   "{connection.snippet}"
                                 </p>
                               </motion.blockquote>
-                              
-                              {/* Clean document list */}
                               <footer className="space-y-2">
                                 <div className="text-xs font-medium text-[#1A1A1A] opacity-50 uppercase tracking-wide mb-3">
-                                  Connected Sources
+                                  Connected Source
                                 </div>
-                                {connection.documents.map((doc, docIndex) => (
-                                  <motion.div
-                                    key={docIndex}
-                                    className="flex items-center justify-between p-3 bg-[#FAFAF9]/40 rounded-lg border border-[#E5E7EB]/20 hover:bg-[#DC2626]/5 transition-all duration-300"
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: index * 0.1 + docIndex * 0.1 + 0.4, duration: 0.3 }}
-                                    whileHover={{ scale: 1.01 }}
-                                  >
-                                    <div className="flex items-center space-x-3 w-full">
-                                      <div className="w-2 h-2 bg-[#DC2626] rounded-full opacity-60" />
-                                      <div className='flex justify-between w-full  items-center space-x-2'>
-                                        <div className="text-sm font-medium text-[#1A1A1A]">
-                                          {doc}
-                                        </div>
-                                        <div className="text-xs text-[#1A1A1A] opacity-60">
-                                          Page {connection.pages[docIndex]}
-                                        </div>
+                                <motion.div
+                                  className="flex items-center justify-between p-3 bg-[#FAFAF9]/40 rounded-lg border border-[#E5E7EB]/20 hover:bg-[#DC2626]/5 transition-all duration-300"
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: index * 0.05 + 0.2, duration: 0.3 }}
+                                  whileHover={{ scale: 1.01 }}
+                                >
+                                  <div className="flex items-center space-x-3 w-full">
+                                    <div className="w-2 h-2 bg-[#DC2626] rounded-full opacity-60" />
+                                    <div className='flex justify-between w-full items-center space-x-2'>
+                                      <div className="text-sm font-medium text-[#1A1A1A]">
+                                        {connection.document}
+                                      </div>
+                                      <div className="text-xs text-[#1A1A1A] opacity-60">
+                                        Page {Array.isArray(connection.pages) && connection.pages.length > 0 ? connection.pages[0] : 1}
                                       </div>
                                     </div>
-                                  </motion.div>
-                                ))}
+                                  </div>
+                                </motion.div>
                               </footer>
                             </div>
                           </motion.article>

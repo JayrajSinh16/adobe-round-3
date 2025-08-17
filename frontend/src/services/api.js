@@ -164,3 +164,20 @@ export const downloadPodcast = async (podcastId) => {
 };
 
 export default api;
+
+// Connections: find cross-document connections for selected text
+export const findConnections = async ({ selected_text, current_document_id, current_page, context_before = '', context_after = '' }) => {
+  try {
+    const response = await api.post('/api/connections/find', {
+      selected_text,
+      current_document_id,
+      current_page,
+      context_before,
+      context_after,
+    });
+    return response.data; // { connections: [...], summary: string, processing_time: number }
+  } catch (error) {
+    const msg = error.response?.data?.detail || error.response?.data?.message || 'Failed to fetch connections';
+    throw new Error(msg);
+  }
+};

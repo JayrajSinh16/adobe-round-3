@@ -11,7 +11,7 @@ import LeftPanel from './LeftPanel';
 import CenterPanel from './CenterPanel';
 import RightPanel from './RightPanel';
 import InsightDetailModal from './modals/InsightDetailModal';
-import { uploadDocuments } from '../services/api';
+import { uploadDocuments, findConnections } from '../services/api';
 import { getActivePDFs, upsertPDFs } from '../utils/pdfDb';
 
 const PDFAnalysisWorkspace = () => {
@@ -113,6 +113,8 @@ const PDFAnalysisWorkspace = () => {
   const [selectedText, setSelectedText] = useState('');
   const [selectedTextContext, setSelectedTextContext] = useState(null);
   const [activeInsightTab, setActiveInsightTab] = useState('connections');
+  const [connectionsData, setConnectionsData] = useState({ connections: [], summary: '', processing_time: 0 });
+  const [connectionsError, setConnectionsError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   // Insight modal state (LIFTED)
   const [selectedInsight, setSelectedInsight] = useState(null);
@@ -138,6 +140,36 @@ const PDFAnalysisWorkspace = () => {
   
   // Podcast State
   const [podcastGenerating, setPodcastGenerating] = useState(false);
+
+  // Kick off connections fetch when text is selected and panel shows
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!selectedTextContext || !selectedFile) return;
+      try {
+        setConnectionsError('');
+        setAnalysisLoading(true);
+        const payload = {
+          selected_text: selectedTextContext.text,
+          current_document_id: selectedFile.id || selectedFile.name,
+          current_page: selectedTextContext.page || 1,
+          context_before: '',
+          context_after: '',
+        };
+        const data = await findConnections(payload);
+        if (cancelled) return;
+        setConnectionsData(data || { connections: [], summary: '', processing_time: 0 });
+        setInsightsGenerated(true);
+      } catch (e) {
+        if (cancelled) return;
+        setConnectionsError(e?.message || 'Failed to load connections');
+        setConnectionsData({ connections: [], summary: '', processing_time: 0 });
+      } finally {
+        if (!cancelled) setAnalysisLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedTextContext, selectedFile]);
 
   // Animation configs
   const goldenTransition = {
@@ -749,6 +781,8 @@ const PDFAnalysisWorkspace = () => {
           handleGeneratePodcast={handleGeneratePodcast}
           goldenTransition={goldenTransition}
           onInsightClick={handleInsightClick}
+          connectionsData={connectionsData}
+          connectionsError={connectionsError}
         />
         <InsightDetailModal
           insight={selectedInsight}
