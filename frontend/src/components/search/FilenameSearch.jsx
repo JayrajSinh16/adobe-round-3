@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Search, FileText, CheckCircle2, SortDesc
+  Search, FileText, CheckCircle2, SortDesc, Trash2
 } from 'lucide-react';
 
 const FilenameSearch = ({
@@ -13,11 +13,20 @@ const FilenameSearch = ({
   formatFileSize,
   formatTimestamp,
   visitedFiles,
-  leftPanelCollapsed
+  leftPanelCollapsed,
+  onFileDelete
 }) => {
   // Local state for filename search
   const [sortBy, setSortBy] = useState('recent');
   const [filterBy, setFilterBy] = useState('all');
+
+  // Handle file deletion
+  const handleDeleteFile = useCallback((e, fileId) => {
+    e.stopPropagation(); // Prevent file selection when clicking delete
+    if (onFileDelete) {
+      onFileDelete(fileId);
+    }
+  }, [onFileDelete]);
 
   // Sophisticated sorting logic for filename search
   const sortedFiles = React.useMemo(() => {
@@ -51,56 +60,60 @@ const FilenameSearch = ({
 
   return (
     <>
-      {/* Search Input */}
-      <div className="relative group">
-        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#1A1A1A] opacity-40 group-focus-within:opacity-70 group-focus-within:text-[#DC2626] transition-all duration-300" />
-        <input
-          type="text"
-          placeholder="Search documents by filename..."
-          value={searchTerm}
-          onChange={handleSearchChange}
-          className="w-full pl-12 pr-4 py-3 border-2 border-[#E5E7EB] bg-[#FAFAF9] rounded-xl focus:ring-2 focus:ring-[#DC2626]/20 focus:border-[#DC2626] transition-all duration-300 text-sm font-medium placeholder-[#1A1A1A] placeholder-opacity-40 hover:bg-white"
-          style={{
-            backdropFilter: 'blur(10px)',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.02)'
-          }}
-        />
-      </div>
-
-      {/* Filter & Sort Controls */}
-      <div className="flex items-center justify-between space-x-3">
-        {/* Sort Dropdown */}
-        <div className="relative flex-1">
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="w-full appearance-none bg-white/80 border border-[#E5E7EB] rounded-xl px-4 py-2 text-sm font-medium text-[#1A1A1A] focus:ring-2 focus:ring-[#DC2626]/20 focus:border-[#DC2626] transition-all duration-300"
-          >
-            <option value="recent">Recent</option>
-            <option value="name">Name</option>
-            <option value="size">Size</option>
-            <option value="confidence">Confidence</option>
-          </select>
-          <SortDesc className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#1A1A1A] opacity-40 pointer-events-none" />
+      {/* Search Input - only show when not collapsed */}
+      {!leftPanelCollapsed && (
+        <div className="relative group">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#1A1A1A] opacity-40 group-focus-within:opacity-70 group-focus-within:text-[#DC2626] transition-all duration-300" />
+          <input
+            type="text"
+            placeholder="Search documents by filename..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            className="w-full pl-12 pr-4 py-3 border-2 border-[#E5E7EB] bg-[#FAFAF9] rounded-xl focus:ring-2 focus:ring-[#DC2626]/20 focus:border-[#DC2626] transition-all duration-300 text-sm font-medium placeholder-[#1A1A1A] placeholder-opacity-40 hover:bg-white"
+            style={{
+              backdropFilter: 'blur(10px)',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.02)'
+            }}
+          />
         </div>
+      )}
 
-        {/* Filter Toggle */}
-        <div className="flex items-center space-x-1 bg-white/80 border border-[#E5E7EB] rounded-xl p-1">
-          {['all', 'visited', 'unvisited'].map((filter) => (
-            <button
-              key={filter}
-              onClick={() => setFilterBy(filter)}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all duration-300 ${
-                filterBy === filter
-                  ? 'bg-[#DC2626] text-white shadow-lg'
-                  : 'text-[#1A1A1A] opacity-60 hover:opacity-100'
-              }`}
+      {/* Filter & Sort Controls - only show when not collapsed */}
+      {!leftPanelCollapsed && (
+        <div className="flex items-center justify-between space-x-3">
+          {/* Sort Dropdown */}
+          <div className="relative flex-1">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full appearance-none bg-white/80 border border-[#E5E7EB] rounded-xl px-4 py-2 text-sm font-medium text-[#1A1A1A] focus:ring-2 focus:ring-[#DC2626]/20 focus:border-[#DC2626] transition-all duration-300"
             >
-              {filter === 'all' ? 'All' : filter === 'visited' ? 'Read' : 'New'}
-            </button>
-          ))}
+              <option value="recent">Recent</option>
+              <option value="name">Name</option>
+              <option value="size">Size</option>
+              <option value="confidence">Confidence</option>
+            </select>
+            <SortDesc className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#1A1A1A] opacity-40 pointer-events-none" />
+          </div>
+
+          {/* Filter Toggle */}
+          <div className="flex items-center space-x-1 bg-white/80 border border-[#E5E7EB] rounded-xl p-1">
+            {['all', 'visited', 'unvisited'].map((filter) => (
+              <button
+                key={filter}
+                onClick={() => setFilterBy(filter)}
+                className={`px-3 py-1 text-xs font-bold rounded-lg transition-all duration-300 ${
+                  filterBy === filter
+                    ? 'bg-[#DC2626] text-white shadow-lg'
+                    : 'text-[#1A1A1A] opacity-60 hover:opacity-100'
+                }`}
+              >
+                {filter === 'all' ? 'All' : filter === 'visited' ? 'Read' : 'New'}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* File List */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
@@ -173,7 +186,7 @@ const FilenameSearch = ({
                       
                       <div className="flex-1 min-w-0">
                         {/* File Name */}
-                        <div className="flex items-center space-x-2 mb-3">
+                        <div className="flex items-center justify-between space-x-2 mb-3">
                           <h4 className={`text-[15px] font-semibold truncate transition-colors duration-300 ${
                             isSelected ? 'text-[#DC2626]' : 'text-[#1A1A1A] group-hover:text-[#DC2626]'
                           }`}>
@@ -191,7 +204,15 @@ const FilenameSearch = ({
                         {/* File Metadata */}
                         <div className="flex items-center justify-between text-[13px] text-[#6B7280] mb-2">
                           <span className="font-medium">{formatFileSize(file.size)}</span>
-                          <span>{formatTimestamp(file.lastAccessed)}</span>
+                          <motion.button
+                            onClick={(e) => handleDeleteFile(e, file.id)}
+                            className="p-1 rounded-md hover:bg-red-100 hover:text-red-600 transition-all duration-200 group/delete"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            aria-label={`Delete ${file.name}`}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </motion.button>
                         </div>
                       </div>
                     </div>
@@ -231,7 +252,7 @@ const FilenameSearch = ({
           </div>
         ) : (
           // Collapsed View
-          <div className="space-y-3 w-full overflow-hidden">
+          <div className="px-2 space-y-2 w-full overflow-hidden">
             <AnimatePresence mode="popLayout">
               {sortedFiles.slice(0, 8).map((file, index) => {
                 const isVisited = visitedFiles.has(file.id);

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import PDFViewerFixed from './PDFViewer';
 import {uploadDocuments} from '../services/api';
+import { getActivePDFs, upsertPDFs, dataUrlToBlob } from '../utils/pdfDb';
 import { 
   Upload, 
   File, 
@@ -29,40 +30,38 @@ const DocumentUploader = () => {
   const [fileToPreview, setFileToPreview] = useState(null);
   const fileInputRef = useRef(null);
 
-  // *** CHANGE 2 of 3: UPDATE LOADING LOGIC TO CHECK EXPIRATION ***
+  // Load any persisted PDFs from IndexedDB (TTL enforced in helper)
   useEffect(() => {
-    const stored = localStorage.getItem('uploadedPDFs');
-    if (stored) {
+    let cancelled = false;
+    (async () => {
       try {
-        const data = JSON.parse(stored);
-
-        // SIDE CHECK: Ensure data is an object and has an expiry property
-        if (data && data.expiry && Date.now() > data.expiry) {
-          console.log("Stored session has expired. Clearing local storage.");
-          localStorage.removeItem('uploadedPDFs');
-          return; // Stop execution if expired
-        }
-
-        // The actual files are now in the 'files' property
-        const filesToLoad = data.files;
-
-        // SIDE CHECK: Ensure the files property is an array before processing
-        if (Array.isArray(filesToLoad)) {
-          const restoredFiles = filesToLoad.map(f => ({
-            ...f,
-            status: 'ready',
-            uploadProgress: 100,
-            previewUrl: f.base64, 
-            pages: f.pages || Math.floor(Math.random() * 50) + 1,
-            file: null 
-          }));
-          setUploadedFiles(restoredFiles);
+        const records = await getActivePDFs();
+        if (cancelled) return;
+        if (Array.isArray(records) && records.length > 0) {
+          const restored = records.map((rec) => {
+            const blob = rec.blob;
+            const previewUrl = URL.createObjectURL(blob);
+            const fileObj = new File([blob], rec.name, { type: rec.type || 'application/pdf' });
+            return {
+              id: rec.id,
+              name: rec.name,
+              size: rec.size,
+              type: rec.type || 'application/pdf',
+              uploadedAt: rec.uploadedAt || new Date().toISOString(),
+              status: 'ready',
+              uploadProgress: 100,
+              previewUrl,
+              pages: Math.floor(Math.random() * 50) + 1,
+              file: fileObj,
+            };
+          });
+          setUploadedFiles(restored);
         }
       } catch (e) {
-        console.error("Failed to parse stored PDFs:", e);
-        localStorage.removeItem('uploadedPDFs'); 
+        console.warn('Failed to load PDFs from storage:', e?.message || e);
       }
-    }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   // File validation
@@ -193,7 +192,7 @@ const DocumentUploader = () => {
     }
   });
 
-  // *** CHANGE 3 of 3: UPDATE SAVING LOGIC TO INCLUDE EXPIRATION ***
+  // Save current PDFs to IndexedDB with TTL and navigate
   const handleContinue = async () => {
     if (uploadedFiles.length === 0) return;
 
@@ -212,55 +211,36 @@ const DocumentUploader = () => {
         if (validFiles.length > 0) {
           backendResponse = await uploadDocuments(validFiles);
         } else {
-          console.warn('No valid PDF files to upload to backend. Skipping backend upload.');
+          throw new Error('No valid PDF files to upload to backend');
         }
       } catch (e) {
         console.error('Backend upload failed:', e);
-        // proceed with localStorage even if backend fails
+        setErrors([e?.message || 'Failed to upload documents to server']);
+        return; // abort flow; do not persist to IndexedDB
       }
 
-      // 2) Prepare files for localStorage (NO CHANGES HERE)
-      const filesToStore = await Promise.all(
-        uploadedFiles.map(async (f) => {
-          if (f.base64) {
+      // 2) Persist PDFs to IndexedDB as Blobs with TTL
+  try {
+        const records = await Promise.all(
+          uploadedFiles.map(async (f) => {
+            let blob = null;
+            if (f?.file instanceof Blob) blob = f.file;
+            else if (typeof f?.base64 === 'string') blob = dataUrlToBlob(f.base64);
+            if (!blob) return null;
             return {
               id: f.id,
               name: f.name,
               size: f.size,
-              type: f.type,
+              type: f.type || 'application/pdf',
               uploadedAt: f.uploadedAt,
-              base64: f.base64,
+              blob,
             };
-          }
-          const blob = f?.file;
-          if (blob && typeof blob === 'object') {
-            try {
-              const dataUrl = await fileToBase64(blob);
-              return {
-                id: f.id,
-                name: f.name,
-                size: f.size,
-                type: f.type,
-                uploadedAt: f.uploadedAt,
-                base64: dataUrl,
-              };
-            } catch (e) {
-              console.warn('Failed to convert file to base64:', f?.name, e);
-              return null;
-            }
-          }
-          return null;
-        })
-      );
-      
-      // WRAP the files array in an object with an expiry timestamp
-      const dataToPersist = {
-        expiry: Date.now() + STORAGE_TTL_MS,
-        files: filesToStore.filter(Boolean),
-      };
-
-      // SAVE the new object structure to localStorage
-      localStorage.setItem('uploadedPDFs', JSON.stringify(dataToPersist));
+          })
+        );
+        await upsertPDFs(records.filter(Boolean), STORAGE_TTL_MS);
+      } catch (e) {
+        console.warn('Failed to persist PDFs locally:', e?.message || e);
+      }
 
       // 3) Navigate with state (NO CHANGES HERE)
       navigate('/result-analysis', {
@@ -290,7 +270,7 @@ const DocumentUploader = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
           >
-            <h1 className="text-xl md:text-4xl font-black text-[#1A1A1A] mb-2 leading-[0.85] tracking-tight">
+            <h1 className="text-xl md:text-5xl font-black text-[#1A1A1A] mb-2 leading-[0.85] tracking-tight">
               Document 
               <span className=" text-[#DC2626]"> Experience</span>
             </h1>

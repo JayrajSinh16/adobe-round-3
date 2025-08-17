@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -12,6 +12,7 @@ import CenterPanel from './CenterPanel';
 import RightPanel from './RightPanel';
 import InsightDetailModal from './modals/InsightDetailModal';
 import { uploadDocuments } from '../services/api';
+import { getActivePDFs, upsertPDFs, deletePDF } from '../utils/pdfDb';
 
 const PDFAnalysisWorkspace = () => {
   const location = useLocation();
@@ -52,35 +53,11 @@ const PDFAnalysisWorkspace = () => {
   if (location.state && location.state.uploadedFiles && location.state.uploadedFiles.length > 0) {
     uploadedFiles = location.state.uploadedFiles;
   } else {
-    // Try to load from localStorage
-    const stored = localStorage.getItem('uploadedPDFs');
-    if (stored) {
-      try {
-        const data = JSON.parse(stored);
-        if (!data || (data.expiry && Date.now() > data.expiry)) {
-          localStorage.removeItem('uploadedPDFs');
-        } else if (Array.isArray(data.files)) {
-          const seen = new Set();
-          uploadedFiles = data.files.map((pdf, idx) => {
-            const theFile = base64ToFile(pdf.base64, pdf.name || `file-${idx + 1}.pdf`, pdf.type || 'application/pdf', pdf.lastModified);
-            const id = pdf.id || `${pdf.name}-${pdf.size}`;
-            const key = `${pdf.name}|${pdf.size}`;
-            if (!theFile || seen.has(key)) return null; // skip invalid/duplicates
-            seen.add(key);
-            return {
-              id: pdf.id || `file-${Date.now()}-${idx}`,
-              name: pdf.name,
-              size: pdf.size,
-              type: pdf.type || 'application/pdf',
-              uploadedAt: pdf.uploadedAt || new Date().toISOString(),
-              file: theFile,
-            };
-          }).filter(Boolean);
-        }
-      } catch (e) {
-        uploadedFiles = [];
-      }
-    }
+    // Load from IndexedDB synchronously-like (can't await in render, so we will start empty and LeftPanel/guards handle empty UI)
+    // We'll try to do a quick synchronous snapshot by reading IDB via a blocking pattern is not possible; keep [] and allow user to go back.
+    // The uploader already persisted to IDB before navigating.
+    // Optionally a future enhancement: lift into an effect. Keeping minimal changes per request.
+    // Note: The empty guard at the bottom will show the Upload screen button.
   }
 
   // Enhanced file management state
@@ -92,6 +69,42 @@ const PDFAnalysisWorkspace = () => {
     return [{ id: `${last.id || last.name}-${Date.now()}`, file: last }];
   });
   const [activeTabId, setActiveTabId] = useState(() => (openTabs[0]?.id || null));
+  
+  // If no files came via navigation, try to hydrate from IndexedDB on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        if (files && files.length > 0) return; // already have files
+        const records = await getActivePDFs();
+        if (cancelled) return;
+        if (!Array.isArray(records) || records.length === 0) return;
+        const restored = records.map((rec, idx) => {
+          const blob = rec.blob;
+          const fileObj = new File([blob], rec.name, { type: rec.type || 'application/pdf' });
+          return {
+            id: rec.id || `file-${Date.now()}-${idx}`,
+            name: rec.name,
+            size: rec.size,
+            type: rec.type || 'application/pdf',
+            uploadedAt: rec.uploadedAt || new Date().toISOString(),
+            file: fileObj,
+          };
+        });
+        setFiles(restored);
+        if (restored.length > 0) {
+          const last = restored[restored.length - 1];
+          setSelectedFile(last);
+          const tid = `${last.id || last.name}-${Date.now()}`;
+          setOpenTabs([{ id: tid, file: last }]);
+          setActiveTabId(tid);
+        }
+      } catch (e) {
+        // silent fail; empty state UI will prompt upload
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
   
   // Core UI State
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
@@ -337,46 +350,26 @@ const PDFAnalysisWorkspace = () => {
       readingTime: Math.floor(Math.random() * 30) + 5
     }));
 
-    // Try backend upload (non-blocking for local persistence)
+    // Backend upload MUST succeed before any local persistence
     try {
       await uploadDocuments(processedNewFiles);
       toast.success(`${processedNewFiles.length} document(s) uploaded`);
     } catch (e) {
       toast.error(e.message || 'Failed to upload to server');
+      return; // abort local persistence
     }
 
-    // Persist to localStorage with TTL, merging with existing entries
+    // Persist to IndexedDB with TTL, dedup by name|size
     try {
-      const existingRaw = localStorage.getItem('uploadedPDFs');
-      let existing = { expiry: Date.now() + STORAGE_TTL_MS, files: [] };
-      if (existingRaw) {
-        try {
-          const parsed = JSON.parse(existingRaw);
-          if (parsed && Array.isArray(parsed.files) && (!parsed.expiry || Date.now() < parsed.expiry)) {
-            existing = parsed;
-          }
-        } catch {}
-      }
-      const newFilesForStore = await Promise.all(processedNewFiles.map(async (f) => ({
+      const records = await Promise.all(processedNewFiles.map(async (f) => ({
         id: f.id,
         name: f.name,
         size: f.size,
         type: f.type,
         uploadedAt: f.uploadedAt,
-        base64: await fileToBase64(f.file)
+        blob: f.file,
       })));
-      // Merge while removing duplicates by name|size
-      const mergedList = [...(existing.files || []), ...newFilesForStore];
-      const dedupMap = new Map();
-      for (const f of mergedList) {
-        if (!f?.name || !f?.size) continue;
-        dedupMap.set(`${f.name}|${f.size}`, f);
-      }
-      const merged = {
-        expiry: Date.now() + STORAGE_TTL_MS,
-        files: Array.from(dedupMap.values())
-      };
-      localStorage.setItem('uploadedPDFs', JSON.stringify(merged));
+      await upsertPDFs(records, STORAGE_TTL_MS);
     } catch (e) {
       toast.error('Failed to persist files locally');
     }
@@ -401,6 +394,57 @@ const PDFAnalysisWorkspace = () => {
       return next;
     });
   }, [files, setRightPanelVisible]);
+
+  // Enhanced file delete handler
+  const handleFileDelete = useCallback(async (fileId) => {
+    try {
+      // Find the file to delete
+      const fileToDelete = files.find(f => f.id === fileId);
+      if (!fileToDelete) {
+        toast.error('File not found');
+        return;
+      }
+
+      // Remove from IndexedDB
+      try {
+        await deletePDF(fileId);
+      } catch (e) {
+        console.warn('Failed to delete from IndexedDB:', e);
+        // Continue with state deletion even if IndexedDB fails
+      }
+
+      // Remove from state
+      setFiles(prev => prev.filter(f => f.id !== fileId));
+      
+      // Close any tabs for this file
+      setOpenTabs(prev => prev.filter(tab => tab.file?.id !== fileId));
+      
+      // If this was the selected file, select another one or null
+      if (selectedFile?.id === fileId) {
+        const remainingFiles = files.filter(f => f.id !== fileId);
+        setSelectedFile(remainingFiles.length > 0 ? remainingFiles[0] : null);
+        
+        // If no files left and we have tabs, switch to first tab or clear active tab
+        if (remainingFiles.length === 0) {
+          setActiveTabId(null);
+        } else {
+          // Switch to first remaining tab if current tab was deleted
+          setOpenTabs(prev => {
+            const remainingTabs = prev.filter(tab => tab.file?.id !== fileId);
+            if (remainingTabs.length > 0) {
+              setActiveTabId(remainingTabs[0].id);
+            }
+            return remainingTabs;
+          });
+        }
+      }
+
+      toast.success(`${fileToDelete.name} deleted successfully`);
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      toast.error('Failed to delete file');
+    }
+  }, [files, selectedFile, setOpenTabs, setActiveTabId]);
 
   // Format utilities
   const formatFileSize = (bytes) => {
@@ -719,7 +763,9 @@ const PDFAnalysisWorkspace = () => {
           formatTimestamp={formatTimestamp}
           goldenTransition={goldenTransition}
           rightPanelVisible={rightPanelVisible}
+          setRightPanelVisible={setRightPanelVisible}
           onFileUpload={handleFileUpload}
+          onFileDelete={handleFileDelete}
         />
 
         {/* CENTER PANEL - Premium PDF Viewer */}

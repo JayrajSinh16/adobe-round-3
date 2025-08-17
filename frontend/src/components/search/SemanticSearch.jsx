@@ -131,73 +131,77 @@ const SemanticSearch = ({
 
   return (
     <>
-      {/* Semantic Search Input */}
-      <div className="relative group">
-        <div className="absolute left-4 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
+      {/* Semantic Search Input - only show when not collapsed */}
+      {!leftPanelCollapsed && (
+        <div className="relative group">
+          <div className="absolute left-4 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="flex items-center space-x-1"
+            >
+              <Sparkles className="w-4 h-4 text-[#DC2626] group-focus-within:text-[#DC2626]" />
+              {isSearching && (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-3 h-3 border-2 border-[#DC2626] border-t-transparent rounded-full"
+                />
+              )}
+            </motion.div>
+          </div>
+          
+          <input
+            type="text"
+            placeholder="Search by content... (e.g., 'financial analysis', 'market trends')"
+            value={semanticSearchTerm}
+            onChange={(e) => setSemanticSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-16 py-3 border-2 border-[#DC2626]/30 bg-gradient-to-r from-[#DC2626]/5 to-[#B91C1C]/5 rounded-xl focus:ring-2 focus:ring-[#DC2626]/20 focus:border-[#DC2626] transition-all duration-300 text-sm font-medium placeholder-[#1A1A1A] placeholder-opacity-40 hover:bg-white"
+            style={{
+              backdropFilter: 'blur(10px)',
+              boxShadow: '0 4px 16px rgba(220, 38, 38, 0.1)'
+            }}
+          />
+          
+          {/* AI Indicator */}
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="flex items-center space-x-1"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="absolute right-3 top-1/4 transform -translate-y-1/2"
           >
-            <Sparkles className="w-4 h-4 text-[#DC2626] group-focus-within:text-[#DC2626]" />
-            {isSearching && (
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                className="w-3 h-3 border-2 border-[#DC2626] border-t-transparent rounded-full"
-              />
-            )}
+            <div className="bg-[#DC2626] text-white text-xs px-2 py-1 rounded-full font-bold flex items-center space-x-1">
+              <Brain className="w-3 h-3" />
+              <span>AI</span>
+            </div>
           </motion.div>
         </div>
-        
-        <input
-          type="text"
-          placeholder="Search by content... (e.g., 'financial analysis', 'market trends')"
-          value={semanticSearchTerm}
-          onChange={(e) => setSemanticSearchTerm(e.target.value)}
-          className="w-full pl-12 pr-16 py-3 border-2 border-[#DC2626]/30 bg-gradient-to-r from-[#DC2626]/5 to-[#B91C1C]/5 rounded-xl focus:ring-2 focus:ring-[#DC2626]/20 focus:border-[#DC2626] transition-all duration-300 text-sm font-medium placeholder-[#1A1A1A] placeholder-opacity-40 hover:bg-white"
-          style={{
-            backdropFilter: 'blur(10px)',
-            boxShadow: '0 4px 16px rgba(220, 38, 38, 0.1)'
-          }}
-        />
-        
-        {/* AI Indicator */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="absolute right-3 top-1/4 transform -translate-y-1/2"
-        >
-          <div className="bg-[#DC2626] text-white text-xs px-2 py-1 rounded-full font-bold flex items-center space-x-1">
-            <Brain className="w-3 h-3" />
-            <span>AI</span>
-          </div>
-        </motion.div>
-      </div>
+      )}
 
-      {/* Results Counter and Status */}
-      <AnimatePresence>
-        {(semanticSearchTerm || isSearching) && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="flex items-center justify-between text-sm"
-          >
-            <div className="flex items-center space-x-2">
-              <Target className="w-4 h-4 text-[#DC2626]" />
-              <span className="text-[#1A1A1A] opacity-70">
-                {isSearching ? 'Searching...' : `${semanticResults.length} semantic matches`}
-              </span>
-            </div>
-            {semanticResults.length > 0 && (
-              <div className="text-xs text-[#DC2626] font-medium">
-                Sorted by relevance
+      {/* Results Counter and Status - only show when not collapsed */}
+      {!leftPanelCollapsed && (
+        <AnimatePresence>
+          {(semanticSearchTerm || isSearching) && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="flex items-center justify-between text-sm"
+            >
+              <div className="flex items-center space-x-2">
+                <Target className="w-4 h-4 text-[#DC2626]" />
+                <span className="text-[#1A1A1A] opacity-70">
+                  {isSearching ? 'Searching...' : `${semanticResults.length} semantic matches`}
+                </span>
               </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+              {semanticResults.length > 0 && (
+                <div className="text-xs text-[#DC2626] font-medium">
+                  Sorted by relevance
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
 
       {/* Semantic Results List */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
