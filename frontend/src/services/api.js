@@ -3,7 +3,7 @@ import axios from 'axios';
 // Create axios instance with default config
 const api = axios.create({
   // Prefer Vite env if provided, fallback to localhost:8000
-  baseURL: (import.meta?.env?.VITE_API_BASE_URL?.trim?.() || 'http://localhost:8000'),
+  baseURL: (import.meta?.env?.VITE_API_BASE_URL?.trim?.() || 'http://localhost:8080'),
   timeout: parseInt(import.meta?.env?.VITE_API_TIMEOUT) || 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -17,6 +17,16 @@ api.interceptors.request.use(
     const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // If sending FormData, remove any preset JSON content-type so browser sets the boundary
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      if (config.headers && 'Content-Type' in config.headers) {
+        delete config.headers['Content-Type'];
+      }
+      // Axios also keeps method-specific headers
+      if (config.headers && config.headers.post && config.headers.post['Content-Type']) {
+        delete config.headers.post['Content-Type'];
+      }
     }
     return config;
   },
@@ -59,7 +69,7 @@ export const uploadDocuments = async (files) => {
   }
 
   try {
-  // Do not set Content-Type; let the browser set the proper multipart boundary
+  // Override default JSON header so the browser sets the proper multipart boundary
   const response = await api.post('/api/documents/bulk-upload', formData, {
       onUploadProgress: (progressEvent) => {
         // Optional: Handle upload progress
