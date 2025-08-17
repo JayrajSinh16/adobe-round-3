@@ -11,10 +11,9 @@ class PodcastService:
     def __init__(self):
         self.generated_podcasts = {}
     
-    def generate_podcast(self, selected_text: str, document_id: str,
-                        connections: List[Dict], insights: List[Dict],
+    def generate_podcast(self, selected_text: str, insights: List[Dict[str, Any]],
                         format: str = "podcast", duration: str = "medium") -> PodcastResponse:
-        """Generate podcast or audio overview"""
+        """Generate podcast or audio overview using frontend insights"""
         start_time = time.time()
         
         # Determine target duration in seconds
@@ -25,30 +24,40 @@ class PodcastService:
         }
         target_duration = duration_map.get(duration, 210)
         
-        # Generate script using LLM
+        # Generate script using LLM with provided insights
+        # Convert Pydantic objects to dictionaries for task_modules
+        insights_dict = []
+        for insight in insights:
+            if hasattr(insight, 'dict'):
+                insights_dict.append(insight.dict())
+            else:
+                insights_dict.append(insight)
+        
         script_data = generate_podcast_script(
             selected_text=selected_text,
-            connections=connections,
-            insights=insights,
+            insights=insights_dict,
             format=format
         )
         
-        # Convert to PodcastScript objects
+        # Convert to PodcastScript objects (without timestamp)
         script = []
-        for idx, entry in enumerate(script_data):
+        for entry in script_data:
             script.append(PodcastScript(
                 speaker=entry["speaker"],
-                text=entry["text"],
-                timestamp=0.0  # Will be calculated during audio generation
+                text=entry["text"]
             ))
         
-        # Generate audio
+        # Generate audio with different voices
+        print(f"🎤 Calling create_podcast_audio with {len(script_data)} segments...")
         audio_filename = create_podcast_audio(script_data)
+        print(f"🎤 create_podcast_audio returned: {audio_filename}")
         
         if audio_filename:
             audio_url = f"/static/audio/{audio_filename}"
+            print(f"✅ Audio URL set to: {audio_url}")
         else:
             audio_url = ""
+            print("❌ No audio filename returned, setting empty audio_url")
         
         # Calculate actual duration (estimate based on text length)
         total_words = sum(len(s.text.split()) for s in script)
@@ -64,14 +73,14 @@ class PodcastService:
         )
         
         # Cache the response
-        cache_key = f"{document_id}_{selected_text[:50]}"
+        cache_key = f"{selected_text[:50]}_{format}"
         self.generated_podcasts[cache_key] = response
         
         return response
     
-    def get_cached_podcast(self, document_id: str, selected_text: str) -> Optional[PodcastResponse]:
+    def get_cached_podcast(self, selected_text: str, format: str) -> Optional[PodcastResponse]:
         """Get cached podcast if available"""
-        cache_key = f"{document_id}_{selected_text[:50]}"
+        cache_key = f"{selected_text[:50]}_{format}"
         return self.generated_podcasts.get(cache_key)
 
 # Create singleton instance

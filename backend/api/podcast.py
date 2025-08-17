@@ -6,21 +6,19 @@ router = APIRouter()
 
 @router.post("/generate", response_model=PodcastResponse)
 async def generate_podcast(request: PodcastRequest):
-    """Generate podcast or audio overview"""
+    """Generate podcast or audio overview using frontend insights"""
     try:
         # Check for cached version first
         cached = podcast_service.get_cached_podcast(
-            request.document_id,
-            request.selected_text
+            request.selected_text,
+            request.format
         )
         if cached:
             return cached
         
-        # Generate new podcast
+        # Generate new podcast using insights from frontend
         response = podcast_service.generate_podcast(
             selected_text=request.selected_text,
-            document_id=request.document_id,
-            connections=request.connections,
             insights=request.insights,
             format=request.format,
             duration=request.duration

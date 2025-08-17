@@ -218,72 +218,183 @@ class ContentGenerator:
     def __init__(self):
         self.client = get_llm_client()
     
-    def generate_podcast_script(self, selected_text: str, connections: List[Dict], insights: List[Dict], format: str = "podcast") -> List[Dict]:
-        """Generate podcast script or audio overview"""
+    def generate_podcast_script(self, selected_text: str, insights: List[Dict], format: str = "podcast") -> List[Dict]:
+        """Generate podcast script or audio overview using insights"""
         pdf_context = get_pdf_context()
         
+        # Format insights for better LLM understanding
+        insights_summary = self._format_insights_for_prompt(insights)
+        
         if format == "podcast":
-            system_prompt = """You are a professional podcast script writer with access to a document library. Your task is to write dialogue between a Host (who asks questions) and an Expert (who provides detailed answers) while incorporating relevant information from the available documents. Make the conversation flow naturally with realistic speech patterns. The Host should be curious and ask insightful follow-up questions. The Expert should be knowledgeable, provide clear explanations, and reference the document library when relevant. Always format your response as valid JSON with speaker and text fields. Keep the dialogue relevant to the uploaded documents."""
+            system_prompt = """You are a professional podcast script writer creating engaging dialogue between Alex (Host - Female) and Jamie (Expert - Male). 
+
+CRITICAL INSTRUCTIONS:
+1. You MUST respond with ONLY valid JSON - no other text, no explanations, no markdown
+2. Use proper JSON escaping for quotes within text
+3. Create natural, engaging conversation about the topic
+4. Reference the provided insights naturally in the dialogue
+5. Generate 8-12 exchanges for a complete conversation
+
+EXACT JSON FORMAT (copy this structure):
+[
+  {"speaker": "Alex", "text": "Your dialogue here"},
+  {"speaker": "Jamie", "text": "Your response here"}
+]
+
+Use Alex for Host questions and Jamie for Expert responses. Ensure all quotes within text are properly escaped."""
             
-            user_prompt = f"""Document Library Context:
-{pdf_context}
+            user_prompt = f"""Create a podcast dialogue about: {selected_text}
 
-Create a 2-3 minute podcast dialogue (300-450 words) about this topic, incorporating relevant information from the document library:
+Available insights to incorporate:
+{insights_summary}
 
-Main topic: {selected_text}
+Create 8-12 natural exchanges where Alex asks questions and Jamie provides expert answers. Reference specific insights and source documents naturally.
 
-Related information: {str(connections)[:300]}...
-
-Key insights: {str(insights)[:300]}...
-
-Format as JSON array with objects containing:
-- "speaker": "Host" or "Expert"
-- "text": what they say
-
-Make sure to reference relevant documents from the library in the conversation."""
+Output pure JSON only - no markdown, no explanations."""
         
         else:  # overview format
-            system_prompt = """You are a professional audio content creator with access to a document library. Your task is to create smooth, informative overview scripts that sound natural when read aloud while incorporating relevant information from the available documents. Use transitions that flow well and maintain listener engagement throughout. Always format your response as valid JSON. Reference relevant documents from the library in your narration."""
+            system_prompt = """You are a professional audio narrator creating an informative overview. 
+
+CRITICAL: You MUST respond with ONLY valid JSON format. No markdown, no explanations, no backticks, just pure JSON.
+
+EXACT OUTPUT FORMAT:
+[
+  {
+    "speaker": "Narrator",
+    "text": "Complete narration text here..."
+  }
+]"""
             
-            user_prompt = f"""Document Library Context:
-{pdf_context}
+            user_prompt = f"""Create a 2-3 minute audio overview about: {selected_text}
 
-Create a 2-3 minute audio overview (300-450 words) about this topic, incorporating relevant information from the document library:
+Available insights to incorporate:
+{insights_summary}
 
-Main topic: {selected_text}
+Create a flowing narrative that incorporates all the key insights naturally.
 
-Related information: {str(connections)[:300]}...
-
-Key insights: {str(insights)[:300]}...
-
-Format as JSON array with a single object:
-- "speaker": "Narrator"
-- "text": the complete narration
-
-Make sure to reference relevant documents from the library in the narration."""
+Remember: Respond with ONLY the JSON array, no other text."""
         
         response = self.client.generate(
             prompt=user_prompt,
-            max_tokens=300,  # Conservative for free tier
-            temperature=0.8,
+            max_tokens=600,  # Increased for longer dialogues
+            temperature=0.7,
             system_prompt=system_prompt
         )
+        
+        # Clean response and parse JSON more robustly
+        response = response.strip()
+        
+        # Remove markdown code blocks
+        if response.startswith('```json'):
+            response = response[7:]
+        elif response.startswith('```'):
+            response = response[3:]
+        
+        if response.endswith('```'):
+            response = response[:-3]
+        
+        response = response.strip()
+        
+        # Try to fix common JSON issues
+        response = self._fix_json_response(response)
         
         try:
             import json
             script = json.loads(response)
             if not isinstance(script, list):
-                script = [script]
-            return script
-        except:
-            # Fallback if JSON parsing fails
-            if format == "podcast":
-                return [
-                    {"speaker": "Host", "text": "Today we're discussing an interesting topic from our document library."},
-                    {"speaker": "Expert", "text": response}
-                ]
-            else:
-                return [{"speaker": "Narrator", "text": response}]
+                script = [script] if isinstance(script, dict) else []
+            
+            # Validate structure
+            valid_script = []
+            for segment in script:
+                if isinstance(segment, dict) and 'speaker' in segment and 'text' in segment:
+                    # Clean up text content
+                    text = segment['text'].strip()
+                    if text:
+                        valid_script.append({
+                            "speaker": segment['speaker'],
+                            "text": text
+                        })
+            
+            return valid_script if valid_script else self._get_fallback_script(format, selected_text)
+            
+        except Exception as e:
+            print(f"JSON parsing error: {e}")
+            print(f"Raw response: {response[:200]}...")
+            return self._get_fallback_script(format, selected_text)
+    
+    def _fix_json_response(self, response: str) -> str:
+        """Fix common JSON formatting issues"""
+        import re
+        
+        # Fix unterminated strings by finding the last complete object
+        try:
+            # Find the last complete JSON object/array
+            stack = []
+            last_valid_pos = 0
+            
+            for i, char in enumerate(response):
+                if char == '[':
+                    stack.append('[')
+                elif char == ']':
+                    if stack and stack[-1] == '[':
+                        stack.pop()
+                        if not stack:  # Complete array
+                            last_valid_pos = i + 1
+                elif char == '{':
+                    stack.append('{')
+                elif char == '}':
+                    if stack and stack[-1] == '{':
+                        stack.pop()
+            
+            if last_valid_pos > 0:
+                response = response[:last_valid_pos]
+            
+            # Fix common quote issues
+            response = re.sub(r'([^\\])"([^"]*?)([^\\])"([^,}\]]*)', r'\1"\2\3"\4', response)
+            
+            return response
+            
+        except Exception:
+            return response
+    
+    def _get_fallback_script(self, format: str, selected_text: str) -> List[Dict]:
+        """Get fallback script if JSON parsing fails"""
+        if format == "podcast":
+            return [
+                {"speaker": "Alex", "text": f"Welcome to our podcast. Today we're exploring {selected_text}."},
+                {"speaker": "Jamie", "text": "Thanks Alex. This is indeed a fascinating topic with rich historical and cultural significance."},
+                {"speaker": "Alex", "text": "Can you tell us more about what makes this so special?"},
+                {"speaker": "Jamie", "text": "Absolutely. The insights from our document analysis reveal some incredible details about this subject."}
+            ]
+        else:
+            return [{"speaker": "Narrator", "text": f"Today we explore {selected_text}, uncovering its significance and key insights from our comprehensive analysis."}]
+    
+    def _format_insights_for_prompt(self, insights: List[Dict]) -> str:
+        """Format insights for LLM prompt"""
+        if not insights:
+            return "No specific insights available."
+        
+        formatted_insights = []
+        for insight in insights:
+            insight_type = insight.get('type', 'unknown')
+            title = insight.get('title', 'Insight')
+            content = insight.get('content', '').strip()
+            confidence = insight.get('confidence', 0.0)
+            
+            # Get source documents
+            sources = insight.get('source_documents', [])
+            source_names = [doc.get('pdf_name', 'Unknown') for doc in sources[:3]]  # Limit to 3
+            
+            formatted_insight = f"""
+{title} ({insight_type.replace('_', ' ').title()}):
+{content}
+Sources: {', '.join(source_names) if source_names else 'Various documents'}
+Confidence: {confidence}
+"""
+            formatted_insights.append(formatted_insight.strip())
+        
+        return '\n\n'.join(formatted_insights)
 
 
 # Task-specific instances
