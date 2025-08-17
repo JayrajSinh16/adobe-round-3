@@ -9,7 +9,7 @@ from config import settings
 
 # Rate limiting globals
 _last_request_time = 0
-_min_request_interval = 2  # seconds between requests
+_min_request_interval = 1  # seconds between requests (reduced from 2)
 
 
 class LLMClient:
@@ -68,8 +68,8 @@ class LLMClient:
         self._apply_rate_limiting()
         
         try:
-            # Conservative token limit for free tier
-            conservative_tokens = min(max_tokens, 300)
+            # Increased token limit for better insights, but still conservative for free tier
+            conservative_tokens = min(max_tokens, 1500)  # Increased from 300 to 1500
             
             # Create model with optional system instruction
             if system_prompt:
