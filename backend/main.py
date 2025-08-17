@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 import os
 import uvicorn
 
-from api import documents, connections, insights, podcast, search
+from api import documents, connections, insights, podcast, search, individual_insights
 from config import settings
 
 # Create necessary directories
@@ -36,6 +36,7 @@ app.mount("/static/audio", StaticFiles(directory="storage/audio"), name="audio")
 app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
 app.include_router(connections.router, prefix="/api/connections", tags=["connections"])
 app.include_router(insights.router, prefix="/api/insights", tags=["insights"])
+app.include_router(individual_insights.router, prefix="/api/individual-insights", tags=["individual-insights"])
 app.include_router(podcast.router, prefix="/api/podcast", tags=["podcast"])
 app.include_router(search.router, prefix="/api/search", tags=["search"])
 

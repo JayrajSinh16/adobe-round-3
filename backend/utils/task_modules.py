@@ -121,15 +121,69 @@ class InsightAnalyzer:
     def __init__(self):
         self.client = get_llm_client()
         self.system_prompts = {
-            "key_takeaways": """You are an expert content analyst with access to a document library. Your task is to identify the most important takeaways from the provided text and related sections while considering the broader context of available documents. Focus on actionable insights, practical advice, and core concepts that readers should remember. Always respond in plain text format - no markdown, bullets, or special formatting. Respond in 1-2 clear sentences that capture the essence of the content in relation to the document library.""",
+            "key_takeaways": """You are an expert content analyst with access to a multi-document library. Your PRIMARY task is to synthesize information from MULTIPLE PDFs to provide comprehensive takeaways. You must actively analyze the selected text in relation to information from different documents in the library.
+
+REQUIREMENTS:
+1. MUST reference at least 2-3 different PDF documents by name
+2. Show how concepts connect across different documents
+3. Synthesize information from multiple sources
+4. Highlight actionable insights that emerge from cross-document analysis
+5. Always respond in plain text format - no markdown, bullets, or special formatting
+6. Respond in 2-3 clear sentences that demonstrate multi-document connections
+
+Focus on showing how the selected text relates to and is enhanced by information from other documents in the library.""",
             
-            "contradictions": """You are a critical analysis expert with access to a document library. Your task is to find discrepancies between different pieces of information, conflicting advice, or opposing viewpoints while considering the broader context of available documents. If no contradictions exist, explain how the content complements each other and maintains consistency. Be thorough and objective in your analysis. Always respond in plain text format - no markdown, bullets, or special formatting. Respond in 1-2 clear sentences.""",
+            "contradictions": """You are a critical analysis expert specializing in cross-document analysis. Your PRIMARY task is to compare information across MULTIPLE PDFs to identify contradictions, conflicts, or complementary viewpoints.
+
+REQUIREMENTS:
+1. MUST analyze content from at least 2-3 different PDF documents
+2. Compare how different documents treat the same topic
+3. Identify any conflicting information, differing perspectives, or contradictory advice
+4. If no contradictions exist, explain how different documents complement each other
+5. Show specific examples of how documents align or differ
+6. Always respond in plain text format - no markdown, bullets, or special formatting
+7. Respond in 2-3 clear sentences with specific document references
+
+Focus on multi-document comparison rather than single-document analysis.""",
             
-            "examples": """You are a practical application specialist with access to a document library. Your task is to provide specific, actionable examples that demonstrate how the content can be applied in practice while considering the broader context of available documents. Create detailed scenarios that readers can relate to and implement. Make examples diverse and comprehensive. Always respond in plain text format - no markdown, bullets, or special formatting. Respond in 1-2 clear sentences with concrete examples.""",
+            "examples": """You are a practical application specialist with expertise in cross-document synthesis. Your PRIMARY task is to create comprehensive examples by combining information from MULTIPLE PDFs in the document library.
+
+REQUIREMENTS:
+1. MUST draw examples from at least 2-3 different PDF documents
+2. Create scenarios that integrate knowledge from multiple sources
+3. Show how concepts from different documents work together in practice
+4. Provide specific, actionable examples that readers can implement
+5. Demonstrate how multi-document knowledge enhances practical application
+6. Always respond in plain text format - no markdown, bullets, or special formatting
+7. Respond in 2-3 clear sentences with concrete, cross-document examples
+
+Focus on creating richer examples by combining insights from multiple documents.""",
             
-            "cross_references": """You are a knowledge connection expert with access to a document library. Your task is to find connections, patterns, and relationships across different pieces of content within the available documents. Show how ideas link together, build upon each other, or create a coherent narrative across the document library. Always respond in plain text format - no markdown, bullets, or special formatting. Respond in 2-3 sentences that clearly explain the connections.""",
+            "cross_references": """You are a knowledge connection expert specializing in multi-document relationship mapping. Your PRIMARY task is to identify and explain connections across MULTIPLE PDFs in the document library.
+
+REQUIREMENTS:
+1. MUST identify connections between at least 3-4 different PDF documents
+2. Show how ideas from different documents build upon each other
+3. Explain the narrative flow across multiple documents
+4. Identify patterns and themes that span multiple sources
+5. Highlight how documents complement and enhance each other
+6. Always respond in plain text format - no markdown, bullets, or special formatting
+7. Respond in 3-4 sentences that clearly map connections across documents
+
+This is your specialty - focus entirely on multi-document connections and relationships.""",
             
-            "did_you_know": """You are a fascinating facts curator with access to a document library. Your task is to identify intriguing, lesser-known facts or surprising aspects of the content while considering the broader context of available documents. Focus on information that would make readers say "I didn't know that!" and that relates to the document library. Make it engaging and memorable. Always respond in plain text format - no markdown, bullets, or special formatting. Respond in 2-3 sentences with fascinating insights."""
+            "did_you_know": """You are a fascinating facts curator with expertise in cross-document knowledge discovery. Your PRIMARY task is to uncover surprising connections and insights that emerge when analyzing MULTIPLE PDFs together.
+
+REQUIREMENTS:
+1. MUST reveal insights that connect information from at least 2-3 different PDFs
+2. Find surprising facts that emerge from cross-document analysis
+3. Highlight unexpected connections between different documents
+4. Show how information from one document adds new perspective to another
+5. Focus on "aha moments" that come from multi-document synthesis
+6. Always respond in plain text format - no markdown, bullets, or special formatting
+7. Respond in 2-3 sentences with fascinating cross-document insights
+
+Specialize in finding surprising connections that only become apparent when analyzing multiple documents together."""
         }
     
     def generate_insight(self, selected_text: str, related_sections: List[Dict[str, Any]], insight_type: str) -> str:
@@ -156,35 +210,35 @@ class InsightAnalyzer:
         )
     
     def _get_user_prompt_with_context(self, insight_type: str, selected_text: str, related_text: str, pdf_context: str) -> str:
-        """Get user prompt template for specific insight type with PDF context"""
+        """Get user prompt template for specific insight type with enhanced PDF context"""
         base_context = f"""Document Library Context:
 {pdf_context}
 
 Selected text: {selected_text}
 
-Related sections:
+Related sections from multiple documents:
 {related_text}"""
         
         templates = {
             "key_takeaways": f"""{base_context}
 
-Based on the above content and considering the available documents in the library, provide the most important key takeaways that readers should remember:""",
+CROSS-DOCUMENT ANALYSIS REQUIRED: Analyze the selected text and related sections to provide key takeaways that synthesize information from MULTIPLE PDFs in the library. You MUST reference specific documents by name and show how information from different PDFs connects to create comprehensive takeaways. Do not focus on just one document - your strength is in connecting information across the entire document library:""",
             
             "contradictions": f"""{base_context}
 
-Analyze the above content for contradictions or conflicts, considering the broader context of the document library:""",
+CROSS-DOCUMENT COMPARISON REQUIRED: Compare how different PDFs in the library treat the same topics. Look for contradictions, conflicts, or complementary viewpoints across MULTIPLE documents. You MUST analyze at least 2-3 different PDF documents and show how they differ or align. Reference specific document names and show the comparison:""",
             
             "examples": f"""{base_context}
 
-Provide practical examples based on this content, considering how it relates to other documents in the library:""",
+MULTI-DOCUMENT SYNTHESIS REQUIRED: Create practical examples by combining information from MULTIPLE PDFs in the library. You MUST draw from at least 2-3 different documents to create richer, more comprehensive examples. Show how concepts from different PDFs work together in real-world scenarios. Reference specific documents:""",
             
             "cross_references": f"""{base_context}
 
-Identify connections and relationships between this content and other documents in the library:""",
+MULTI-DOCUMENT RELATIONSHIP MAPPING REQUIRED: Your specialty is finding connections across MULTIPLE PDFs. You MUST identify how the selected text connects to information in at least 3-4 different documents in the library. Show the relationship web between documents and explain how they build upon each other. Reference specific document names:""",
             
             "did_you_know": f"""{base_context}
 
-Generate fascinating facts from this content that relate to the broader document library:"""
+CROSS-DOCUMENT DISCOVERY REQUIRED: Find fascinating insights that emerge when you connect information from MULTIPLE PDFs together. You MUST reveal surprising connections between at least 2-3 different documents. Show how information from one PDF adds unexpected perspective to another. Reference specific documents and their connections:"""
         }
         
         return templates.get(insight_type, templates["key_takeaways"])
