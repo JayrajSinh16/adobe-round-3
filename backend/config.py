@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     debug: bool = True
     host: str = "localhost"
-    port: int = 8000
+    port: int = 8080
     
     # Storage settings
     storage_path: str = "./storage"
@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     tts_provider: str = os.getenv("TTS_PROVIDER", "local")
     azure_tts_key: Optional[str] = os.getenv("AZURE_TTS_KEY")
     azure_tts_endpoint: Optional[str] = os.getenv("AZURE_TTS_ENDPOINT")
+    azure_tts_region: Optional[str] = os.getenv("AZURE_TTS_REGION")
     
     # Adobe Embed API
     adobe_embed_api_key: Optional[str] = os.getenv("ADOBE_EMBED_API_KEY")

@@ -6,6 +6,8 @@ python-multipart
 aiofiles
 PyMuPDF
 numpy
+pydub
+pyttsx3
 scikit-learn
 google-generativeai
 google-cloud-texttospeech
