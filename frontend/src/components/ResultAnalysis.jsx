@@ -23,18 +23,73 @@ const PDFAnalysisWorkspace = () => {
   // Navigation state
   const STORAGE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
+  // Initialize uploaded files early
+  let uploadedFiles = [];
+  if (location.state && location.state.uploadedFiles && location.state.uploadedFiles.length > 0) {
+    uploadedFiles = location.state.uploadedFiles;
+  }
+
+  // Core UI State (declare early to prevent ReferenceError)
+  const [files, setFiles] = useState(uploadedFiles);
+  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
+  const [rightPanelVisible, setRightPanelVisible] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(uploadedFiles[uploadedFiles.length - 1] || null);
+  const [selectedText, setSelectedText] = useState('');
+  const [selectedTextContext, setSelectedTextContext] = useState(null);
+  const [activeInsightTab, setActiveInsightTab] = useState('connections');
+  const [connectionsData, setConnectionsData] = useState({ connections: [], summary: '', processing_time: 0 });
+  const [connectionsError, setConnectionsError] = useState('');
+  const [insightsData, setInsightsData] = useState({ insights: [], selected_text: '', processing_time: 0 });
+  const [insightsError, setInsightsError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedInsight, setSelectedInsight] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pdfZoom, setPdfZoom] = useState(1.0);
+  
+  // Tabs state
+  const [openTabs, setOpenTabs] = useState(() => {
+    if (!uploadedFiles || uploadedFiles.length === 0) return [];
+    const last = uploadedFiles[uploadedFiles.length - 1];
+    return [{ id: `${last.id || last.name}-${Date.now()}`, file: last }];
+  });
+  const [activeTabId, setActiveTabId] = useState(() => (openTabs[0]?.id || null));
+  
+  const backendDocIdMapRef = useRef(new Map()); // filename|size -> backend id
+
   // Helper: base64 -> File
   const base64ToFile = (base64DataUrl, fileName, mimeType = 'application/pdf', lastModified) => {
     try {
+      if (!base64DataUrl || !fileName) return null;
+      
       const base64Payload = typeof base64DataUrl === 'string' && base64DataUrl.includes(',')
         ? base64DataUrl.split(',')[1]
         : base64DataUrl;
-      const byteString = atob(base64Payload || '');
+      
+      if (!base64Payload) return null;
+      
+      const byteString = atob(base64Payload);
       const ab = new ArrayBuffer(byteString.length);
       const ia = new Uint8Array(ab);
-      for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
-      return new File([ab], fileName, { type: mimeType, lastModified: lastModified || Date.now() });
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      
+      // Create File object with proper fallback
+      try {
+        return new File([ab], fileName, { 
+          type: mimeType || 'application/pdf', 
+          lastModified: lastModified || Date.now() 
+        });
+      } catch (fileError) {
+        // Fallback: create a Blob and add file properties
+        const blob = new Blob([ab], { type: mimeType || 'application/pdf' });
+        blob.name = fileName;
+        blob.lastModified = lastModified || Date.now();
+        return blob;
+      }
     } catch (e) {
+      console.error('base64ToFile error:', e);
       return null;
     }
   };
@@ -49,88 +104,19 @@ const PDFAnalysisWorkspace = () => {
     } catch (e) { reject(e); }
   });
 
-  let uploadedFiles = [];
-  if (location.state && location.state.uploadedFiles && location.state.uploadedFiles.length > 0) {
-    uploadedFiles = location.state.uploadedFiles;
-  } else {
-    // Load from IndexedDB synchronously-like (can't await in render, so we will start empty and LeftPanel/guards handle empty UI)
-    // We'll try to do a quick synchronous snapshot by reading IDB via a blocking pattern is not possible; keep [] and allow user to go back.
-    // The uploader already persisted to IDB before navigating.
-    // Optionally a future enhancement: lift into an effect. Keeping minimal changes per request.
-    // Note: The empty guard at the bottom will show the Upload screen button.
-  }
-
-  // Enhanced file management state
-  const [files, setFiles] = useState(uploadedFiles);
-  // Tabs state: each tab { id, file }
-  const [openTabs, setOpenTabs] = useState(() => {
-    if (!uploadedFiles || uploadedFiles.length === 0) return [];
-    const last = uploadedFiles[uploadedFiles.length - 1];
-    return [{ id: `${last.id || last.name}-${Date.now()}`, file: last }];
-  });
-  const [activeTabId, setActiveTabId] = useState(() => (openTabs[0]?.id || null));
-  
-  // Core UI State (must be declared before effects that reference them)
-  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
-  const [rightPanelVisible, setRightPanelVisible] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(uploadedFiles[uploadedFiles.length - 1] || null);
-  const [selectedText, setSelectedText] = useState('');
-  const [selectedTextContext, setSelectedTextContext] = useState(null);
-  const [activeInsightTab, setActiveInsightTab] = useState('connections');
-  const [connectionsData, setConnectionsData] = useState({ connections: [], summary: '', processing_time: 0 });
-  const [connectionsError, setConnectionsError] = useState('');
-  const [insightsData, setInsightsData] = useState({ insights: [], selected_text: '', processing_time: 0 });
-  const [insightsError, setInsightsError] = useState('');
-  const backendDocIdMapRef = useRef(new Map()); // filename|size -> backend id
-  const [searchTerm, setSearchTerm] = useState('');
-  // Insight modal state (LIFTED)
-  const [selectedInsight, setSelectedInsight] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  // PDF State
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pdfZoom, setPdfZoom] = useState(1.0);
-  const [pdfLoading, setPdfLoading] = useState(false);
-  // Analysis State
-  const [analysisLoading, setAnalysisLoading] = useState(false);
-  const [insightsGenerated, setInsightsGenerated] = useState(false);
-  // Podcast State
-  const [podcastGenerating, setPodcastGenerating] = useState(false);
-  // Response flags and insights cache
-  const [hasConnectionsResponse, setHasConnectionsResponse] = useState(false);
-
-  // Insights cache helpers (localStorage)
-  const INSIGHTS_CACHE_KEY = 'insightsCacheV2';
-  const INSIGHTS_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes TTL
-  const getInsightsCache = () => {
+  // Clear insights cache utility
+  const clearInsightsCache = useCallback(() => {
     try {
-      const raw = localStorage.getItem(INSIGHTS_CACHE_KEY);
-      const cache = raw ? JSON.parse(raw) : {};
-      // Clean expired entries
-      const now = Date.now();
-      let changed = false;
-      Object.keys(cache).forEach((k) => {
-        const ts = cache[k]?.__ts;
-        if (!ts || now - ts > INSIGHTS_CACHE_TTL_MS) {
-          delete cache[k];
-          changed = true;
-        }
-      });
-      if (changed) {
-        try { localStorage.setItem(INSIGHTS_CACHE_KEY, JSON.stringify(cache)); } catch {}
-      }
-      return cache;
-    } catch {
-      return {};
+      localStorage.removeItem(INSIGHTS_CACHE_KEY);
+      console.log('Insights cache cleared');
+      // Also clear current insights data to force refresh
+      setInsightsData({ insights: [], selected_text: '', processing_time: 0 });
+      setInsightsError('');
+    } catch (e) {
+      console.warn('Failed to clear cache:', e);
     }
-  };
-  const setInsightsCache = (cache) => {
-    try { localStorage.setItem(INSIGHTS_CACHE_KEY, JSON.stringify(cache)); } catch {}
-  };
-  const makeInsightsKey = (serverDocId, page, text) => {
-    const normText = (text || '').trim();
-    return `${serverDocId}|${page}|${normText}`;
-  };
-  
+  }, []);
+
   // Helper: map current selectedFile to backend doc id using filename
   const getServerDocumentId = useCallback(() => {
     if (!selectedFile?.name) return '';
@@ -138,6 +124,205 @@ const PDFAnalysisWorkspace = () => {
     return backendDocIdMapRef.current.get(key) || String(selectedFile.id || '');
   }, [selectedFile]);
 
+  // Force fresh insights fetch
+  const forceFreshInsights = useCallback(async () => {
+    if (!selectedTextContext || !selectedTextContext.text || !selectedFile) return;
+    
+    try {
+      clearInsightsCache();
+      setAnalysisLoading(true);
+      setInsightsError('');
+      
+      const serverDocId = getServerDocumentId();
+      if (!serverDocId) {
+        throw new Error('Document mapping not found');
+      }
+      
+      console.log('🔄 FORCE FRESH - Calling insights API');
+      const insights = await generateInsights({
+        selected_text: selectedTextContext.text,
+        document_id: serverDocId,
+        page_number: selectedTextContext.page || 1,
+      });
+      
+      setInsightsData(insights || { insights: [], selected_text: '', processing_time: 0 });
+      console.log('🔄 FORCE FRESH - New insights loaded:', insights);
+    } catch (error) {
+      setInsightsError(error?.message || 'Failed to generate insights');
+      console.error('🔄 FORCE FRESH - Error:', error);
+    } finally {
+      setAnalysisLoading(false);
+    }
+  }, [selectedTextContext, selectedFile, getServerDocumentId, clearInsightsCache]);
+
+  // Clear cache on component mount (page refresh)
+  useEffect(() => {
+    // Clear cache on fresh page load to ensure no stale data
+    const isPageRefresh = !window.performance || window.performance.navigation.type === 1;
+    if (isPageRefresh) {
+      console.log('Page refresh detected, clearing insights cache');
+      clearInsightsCache();
+    }
+
+    // Add global debug function
+    window.clearInsightsCache = clearInsightsCache;
+    window.getInsightsCache = getInsightsCache;
+    window.forceFreshInsights = forceFreshInsights;
+    window.debugInsightsCache = () => {
+      const cache = getInsightsCache();
+      console.log('=== INSIGHTS CACHE DEBUG ===');
+      console.log('Cache entries:', Object.keys(cache).length);
+      Object.entries(cache).forEach(([key, value]) => {
+        console.log(`Key: ${key}`);
+        console.log(`  Text: ${value.selected_text?.substring(0, 50)}...`);
+        console.log(`  Timestamp: ${new Date(value.__ts).toLocaleString()}`);
+        console.log(`  Insights count: ${value.insights?.length || 0}`);
+        console.log(`  Insights types: ${value.insights?.map(i => i.type).join(', ') || 'none'}`);
+      });
+      console.log('=== END DEBUG ===');
+    };
+    
+    return () => {
+      delete window.clearInsightsCache;
+      delete window.getInsightsCache;
+      delete window.forceFreshInsights;
+      delete window.debugInsightsCache;
+    };
+  }, [clearInsightsCache]);
+
+  // Enhanced file management state - update files based on uploadedFiles changes
+  useEffect(() => {
+    if (uploadedFiles && uploadedFiles.length > 0) {
+      setFiles(uploadedFiles);
+      setSelectedFile(uploadedFiles[uploadedFiles.length - 1]);
+    } else {
+      // Fallback: Load from IndexedDB if no navigation state
+      const loadFromIndexedDB = async () => {
+        try {
+          console.log('Loading files from IndexedDB...');
+          const records = await getActivePDFs();
+          console.log('Raw IndexedDB records:', records);
+          
+          if (records && records.length > 0) {
+            // Convert IndexedDB records to the expected file format
+            const convertedFiles = records.map(record => {
+              if (record.blob && record.blob instanceof Blob) {
+                // Create File from Blob
+                return new File([record.blob], record.name, {
+                  type: record.type || 'application/pdf',
+                  lastModified: record.uploadedAt ? new Date(record.uploadedAt).getTime() : Date.now()
+                });
+              } else if (record.dataUrl) {
+                // Convert dataUrl to File
+                return base64ToFile(record.dataUrl, record.name, record.type, 
+                  record.uploadedAt ? new Date(record.uploadedAt).getTime() : Date.now());
+              } else {
+                console.warn('Invalid record format:', record);
+                return null;
+              }
+            }).filter(Boolean);
+            
+            console.log('Converted files:', convertedFiles.length);
+            if (convertedFiles.length > 0) {
+              setFiles(convertedFiles);
+              setSelectedFile(convertedFiles[convertedFiles.length - 1]);
+              
+              // Also update openTabs if needed
+              const lastFile = convertedFiles[convertedFiles.length - 1];
+              setOpenTabs([{ id: `${lastFile.name}-${Date.now()}`, file: lastFile }]);
+              setActiveTabId(`${lastFile.name}-${Date.now()}`);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load files from IndexedDB:', error);
+        }
+      };
+      loadFromIndexedDB();
+    }
+  }, []);
+
+  // Additional analysis state
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [insightsGenerated, setInsightsGenerated] = useState(false);
+  const [podcastGenerating, setPodcastGenerating] = useState(false);
+  // Response flags and insights cache
+  const [hasConnectionsResponse, setHasConnectionsResponse] = useState(false);
+
+  // Insights cache helpers (localStorage)
+  const INSIGHTS_CACHE_KEY = 'insightsCacheV3';
+  const INSIGHTS_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes TTL
+  const MAX_CACHE_ENTRIES = 50; // Limit cache size
+  
+  const getInsightsCache = () => {
+    try {
+      const raw = localStorage.getItem(INSIGHTS_CACHE_KEY);
+      const cache = raw ? JSON.parse(raw) : {};
+      const now = Date.now();
+      let changed = false;
+      
+      // Clean expired entries
+      Object.keys(cache).forEach((k) => {
+        const entry = cache[k];
+        if (!entry || !entry.__ts || now - entry.__ts > INSIGHTS_CACHE_TTL_MS) {
+          delete cache[k];
+          changed = true;
+        }
+      });
+      
+      // If cache is too large, remove oldest entries
+      const entries = Object.entries(cache).sort((a, b) => (a[1].__ts || 0) - (b[1].__ts || 0));
+      if (entries.length > MAX_CACHE_ENTRIES) {
+        const toRemove = entries.slice(0, entries.length - MAX_CACHE_ENTRIES);
+        toRemove.forEach(([key]) => {
+          delete cache[key];
+          changed = true;
+        });
+      }
+      
+      if (changed) {
+        try { 
+          localStorage.setItem(INSIGHTS_CACHE_KEY, JSON.stringify(cache)); 
+          console.log('Cache cleaned, entries remaining:', Object.keys(cache).length);
+        } catch (e) {
+          // If localStorage is full, clear it completely
+          console.warn('LocalStorage full, clearing insights cache');
+          localStorage.removeItem(INSIGHTS_CACHE_KEY);
+          return {};
+        }
+      }
+      return cache;
+    } catch (e) {
+      console.warn('Error reading cache, clearing:', e);
+      localStorage.removeItem(INSIGHTS_CACHE_KEY);
+      return {};
+    }
+  };
+  
+  const setInsightsCache = (cache) => {
+    try { 
+      localStorage.setItem(INSIGHTS_CACHE_KEY, JSON.stringify(cache)); 
+    } catch (e) {
+      console.warn('Failed to save cache, clearing:', e);
+      localStorage.removeItem(INSIGHTS_CACHE_KEY);
+    }
+  };
+  
+  const makeInsightsKey = (serverDocId, page, text) => {
+    const normText = (text || '').trim().substring(0, 100); // Limit text length in key
+    const hash = normText.split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0);
+      return a & a;
+    }, 0);
+    return `${serverDocId}|${page}|${hash}|${normText.length}`;
+  };
+
+  // Text comparison utility for exact cache matching
+  const textsMatch = (text1, text2) => {
+    const normalize = (t) => (t || '').trim().replace(/\s+/g, ' ');
+    return normalize(text1) === normalize(text2);
+  };
+  
   // If no files came via navigation, try to hydrate from IndexedDB on mount
   useEffect(() => {
     let cancelled = false;
@@ -253,8 +438,15 @@ const PDFAnalysisWorkspace = () => {
   // Handler to open modal from anywhere
   const handleInsightClick = async (insight) => {
     try {
-      if (!insight) return;
+      if (!insight) {
+        console.warn('No insight provided to handleInsightClick');
+        return;
+      }
+      
+      console.log('Insight clicked:', insight);
+      
       if (!selectedTextContext || !selectedTextContext.text || !selectedFile) {
+        console.warn('Missing context, opening modal with basic insight data');
         setSelectedInsight(insight);
         setIsModalOpen(true);
         return;
@@ -262,23 +454,29 @@ const PDFAnalysisWorkspace = () => {
 
       const serverDocId = getServerDocumentId();
       if (!serverDocId) {
+        console.warn('No server document ID, opening modal with basic insight data');
         setSelectedInsight(insight);
         setIsModalOpen(true);
         return;
       }
 
       const page_no = selectedTextContext.page || 1;
+      
+      // Map the UI insight to backend request format
       const respond = {
-        // Map UI card type to backend request 'respond.type'
         type: insight.type || 'key_takeaways',
         title: insight.title || 'Insight',
         content: insight.content || insight.insight || '',
         source_documents: (Array.isArray(insight.source_documents) ? insight.source_documents.map(s => ({
           pdf_name: s.pdf_name || s.document || s.name || selectedFile?.name || 'Current Document',
-          pdf_id: s.pdf_id || '',
+          pdf_id: s.pdf_id || s.id || '',
           page: s.page || page_no,
-        })) : []),
-        confidence: Number(insight.confidence) || 0,
+        })) : [{
+          pdf_name: selectedFile?.name || 'Current Document',
+          pdf_id: '',
+          page: page_no,
+        }]),
+        confidence: Number(insight.confidence) || 0.8,
       };
 
       const baseArgs = {
@@ -288,35 +486,48 @@ const PDFAnalysisWorkspace = () => {
         respond,
       };
 
+      console.log('Calling individual insights API with:', baseArgs);
+
       let data;
-      switch (insight.type) {
+      const insightType = insight.type;
+      
+      // Map frontend types to backend types and API endpoints
+      switch (insightType) {
         case 'key_takeaways':
         case 'key_takeaway':
+          console.log('Fetching key takeaway...');
           data = await fetchKeyTakeaway({ ...baseArgs, insight_type: 'key_takeaway' });
           break;
         case 'did_you_know':
+          console.log('Fetching did you know...');
           data = await fetchDidYouKnow({ ...baseArgs, insight_type: 'did_you_know' });
           break;
         case 'contradictions':
+          console.log('Fetching contradictions...');
           data = await fetchContradictions({ ...baseArgs, insight_type: 'contradictions' });
           break;
         case 'examples':
+          console.log('Fetching examples...');
           data = await fetchExamples({ ...baseArgs, insight_type: 'examples' });
           break;
         case 'cross_references':
+          console.log('Fetching cross references...');
           data = await fetchCrossReferences({ ...baseArgs, insight_type: 'cross_references' });
           break;
         default:
-          data = null;
+          console.warn('Unknown insight type:', insightType, 'using key_takeaway as fallback');
+          data = await fetchKeyTakeaway({ ...baseArgs, insight_type: 'key_takeaway' });
       }
 
-      // Pass the backend result into modal-friendly shape by merging
+      // Merge the backend result with the original insight
       const merged = data ? { ...insight, ...data } : insight;
-      console.log('Individual insight modal data:', merged);
+      console.log('Individual insight API response merged:', merged);
       setSelectedInsight(merged);
       setIsModalOpen(true);
+      
     } catch (err) {
-      console.warn('Failed to fetch individual insight:', err?.message || err);
+      console.error('Failed to fetch individual insight:', err);
+      // Still open modal with basic data on error
       setSelectedInsight(insight);
       setIsModalOpen(true);
     }
@@ -374,12 +585,23 @@ const PDFAnalysisWorkspace = () => {
         const page = selectedTextContext.page || 1;
         const cache = getInsightsCache();
         const cacheKey = makeInsightsKey(serverDocId2, page, selectedTextContext.text);
-        if (cache[cacheKey] && cache[cacheKey]?.selected_text === selectedTextContext.text) {
-          console.log('Hydrating insights from cache for key:', cacheKey);
-          setInsightsData(cache[cacheKey]);
+        const cachedEntry = cache[cacheKey];
+        
+        // Check if cache is valid and text matches exactly
+        if (cachedEntry && textsMatch(cachedEntry.selected_text, selectedTextContext.text)) {
+          console.log('✅ Cache HIT - Hydrating insights from cache for key:', cacheKey);
+          setInsightsData(cachedEntry);
           setInsightsError('');
           return;
         }
+        
+        console.log('❌ Cache MISS - Fetching fresh insights. Key:', cacheKey);
+        if (cachedEntry) {
+          console.log('Cache entry found but text mismatch:');
+          console.log('  Cached text:', cachedEntry.selected_text?.substring(0, 50) + '...');
+          console.log('  Current text:', selectedTextContext.text?.substring(0, 50) + '...');
+        }
+        
         console.log('Prefetching insights with payload:', { selected_text: selectedTextContext.text, document_id: serverDocId2, page_number: page });
         const insights = await generateInsights({
           selected_text: selectedTextContext.text,
@@ -391,7 +613,7 @@ const PDFAnalysisWorkspace = () => {
         setInsightsError('');
         const next = { ...cache, [cacheKey]: { ...insights, __ts: Date.now() } };
         setInsightsCache(next);
-        console.log('Cached insights under key:', cacheKey);
+        console.log('✅ Cached fresh insights under key:', cacheKey);
       } catch (ie) {
         if (cancelled) return;
         setInsightsError(ie?.message || 'Failed to generate insights');
@@ -578,9 +800,11 @@ const PDFAnalysisWorkspace = () => {
       const page = selectedTextContext.page || 1;
       const cache = getInsightsCache();
       const cacheKey = makeInsightsKey(serverDocId, page, selectedTextContext.text);
-      if (cache[cacheKey] && cache[cacheKey]?.selected_text === selectedTextContext.text && (!insightsData || (insightsData.insights || []).length === 0)) {
-        console.log('Hydrating insights from cache on tab click for key:', cacheKey);
-        setInsightsData(cache[cacheKey]);
+      const cachedEntry = cache[cacheKey];
+      
+      if (cachedEntry && textsMatch(cachedEntry.selected_text, selectedTextContext.text) && (!insightsData || (insightsData.insights || []).length === 0)) {
+        console.log('✅ Tab click - Hydrating insights from cache for key:', cacheKey);
+        setInsightsData(cachedEntry);
         setInsightsError('');
       }
     } catch {}

@@ -348,10 +348,12 @@ const buildIndividualPayload = ({
 
 const postIndividualInsight = async (route, payload) => {
   try {
+    console.log(`Calling /api/individual-insights/${route} with payload:`, payload);
     const res = await api.post(`/api/individual-insights/${route}`, payload);
     console.log(`Individual insight [${route}] response:`, res.data);
     return res.data;
   } catch (error) {
+    console.error(`Individual insight [${route}] error:`, error.response?.data || error.message);
     const msg = error.response?.data?.detail || error.response?.data?.message || `Failed to fetch ${route}`;
     throw new Error(msg);
   }
