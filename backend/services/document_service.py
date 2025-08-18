@@ -150,46 +150,22 @@ class DocumentService:
             counter += 1
         return final
 
-    def _remove_suffix(self, filename: str) -> str:
-        """Remove _1, _2, etc. suffixes from filename for duplicate checking"""
-        import re
-        base_name = os.path.splitext(filename)[0]
-        # Remove trailing _1, _2, _3, etc.
-        base_name = re.sub(r'_\d+$', '', base_name)
-        return base_name
-
     def _check_duplicate_document(self, filename: str) -> Optional[DocumentInfo]:
-        """Check if document is duplicate based on base name (ignoring _1, _2 suffixes)"""
-        target_base = self._remove_suffix(filename)
-        
+        """Check if document is duplicate based on exact filename matching.
+        Returns existing document if exact duplicate found, preventing new upload.
+        Allows numbered variants like file01_1.pdf, file01_2.pdf but blocks exact duplicates.
+        """
         for doc in self.documents.values():
-            existing_base = self._remove_suffix(doc.filename)
-            if existing_base == target_base:
-                print(f"🔍 Found similar document: {doc.filename} matches {filename}")
+            if doc.filename == filename:
+                print(f"🚫 DUPLICATE BLOCKED: {filename} already exists")
+                print(f"   Exact filename '{filename}' already exists in the system")
+                print(f"   Existing file: {doc.filename}")
+                print(f"   Blocked upload: {filename}")
                 
-                # Check if all files exist
-                pdf_exists = os.path.exists(doc.filepath)
-                if not pdf_exists:
-                    print(f"⚠️ PDF missing for {filename}, allowing re-upload")
-                    return None
-                
-                # Check if outline exists
-                base_name = os.path.splitext(doc.filename)[0]
-                outline_path = os.path.join(settings.outline_folder, f"{base_name}.json")
-                outline_exists = os.path.exists(outline_path)
-                if not outline_exists:
-                    print(f"⚠️ Outline missing for {filename}, allowing re-upload")
-                    return None
-                
-                # Check if properly mapped in index
-                is_mapped = doc.id in self._id_filename_map
-                if not is_mapped:
-                    print(f"⚠️ Document not properly indexed for {filename}, allowing re-upload")
-                    return None
-                
-                print(f"✅ Duplicate detected: {filename} already exists as {doc.filename} with all files")
+                # Return the existing document to prevent upload of exact duplicate
                 return doc
         
+        print(f"✅ NEW FILE ALLOWED: {filename}")
         return None
 
     async def upload_document(self, file: UploadFile) -> DocumentInfo:
@@ -207,7 +183,9 @@ class DocumentService:
         # Check for duplicates before processing
         duplicate_doc = self._check_duplicate_document(original_name)
         if duplicate_doc:
-            print(f"✅ Returning existing document: {original_name}")
+            print(f"🚫 UPLOAD BLOCKED: {original_name} is a duplicate")
+            print(f"   Existing document: {duplicate_doc.filename} (ID: {duplicate_doc.id[:8]}...)")
+            print(f"   Upload prevented to avoid duplicates")
             return duplicate_doc
         
         print(f"📄 Processing new document upload: {original_name}")
@@ -305,11 +283,55 @@ class DocumentService:
         return documents
     
     def get_document(self, doc_id: str) -> Optional[DocumentInfo]:
-        """Get document by ID"""
-        return self.documents.get(doc_id)
+        """Get document by ID with automatic cleanup if file is missing"""
+        doc = self.documents.get(doc_id)
+        if doc is None:
+            return None
+        
+        # Check if file still exists on disk
+        if not os.path.exists(doc.filepath):
+            print(f"🗑️ Document file missing for {doc.filename}, cleaning up entry")
+            
+            # Remove from runtime
+            del self.documents[doc_id]
+            
+            # Remove from index mapping
+            if doc_id in self._id_filename_map:
+                del self._id_filename_map[doc_id]
+            
+            # Save updated index
+            self._save_index()
+            return None
+        
+        return doc
     
     def get_all_documents(self) -> List[DocumentInfo]:
-        """Get all documents"""
+        """Get all documents with automatic cleanup of missing files"""
+        # Check for manually deleted files and clean up stale entries
+        stale_docs = []
+        for doc_id, doc in self.documents.items():
+            if not os.path.exists(doc.filepath):
+                stale_docs.append(doc_id)
+                print(f"🗑️ Found stale entry: {doc.filename} (file missing from disk)")
+        
+        # Remove stale entries
+        if stale_docs:
+            print(f"🧹 Cleaning up {len(stale_docs)} stale document entries")
+            for doc_id in stale_docs:
+                doc = self.documents[doc_id]
+                print(f"   Removing: {doc.filename}")
+                
+                # Remove from runtime
+                del self.documents[doc_id]
+                
+                # Remove from index mapping
+                if doc_id in self._id_filename_map:
+                    del self._id_filename_map[doc_id]
+            
+            # Save updated index
+            self._save_index()
+            print(f"✅ Cleanup completed. Now showing {len(self.documents)} valid documents")
+        
         return list(self.documents.values())
 
     def get_document_by_filename(self, filename: str) -> Optional[DocumentInfo]:
@@ -359,6 +381,19 @@ class DocumentService:
         
         return True
     
+    def sync_with_filesystem(self) -> None:
+        """Manually sync the document index with actual files on disk.
+        This will clean up stale entries and add any missing files."""
+        print("🔄 Syncing document index with filesystem...")
+        
+        # Rebuild index to catch any new files
+        self._rebuild_index_from_files()
+        
+        # Reload documents to update metadata
+        self._load_existing_documents()
+        
+        print(f"✅ Sync completed. Active documents: {len(self.documents)}")
+
     def get_document_outline(self, doc_id: str) -> Optional[Dict[str, Any]]:
         """Get document outline by ID"""
         doc = self.get_document(doc_id)
