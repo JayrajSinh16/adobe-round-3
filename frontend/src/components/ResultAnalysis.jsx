@@ -11,7 +11,7 @@ import LeftPanel from './LeftPanel';
 import CenterPanel from './CenterPanel';
 import RightPanel from './RightPanel';
 import InsightDetailModal from './modals/InsightDetailModal';
-import { uploadDocuments, findConnections, generateInsights, listDocuments, fetchKeyTakeaway, fetchDidYouKnow, fetchContradictions, fetchExamples, fetchCrossReferences } from '../services/api';
+import { uploadDocuments, findConnections, generateInsights, listDocuments, fetchKeyTakeaway, fetchDidYouKnow, fetchContradictions, fetchExamples, fetchCrossReferences, generatePodcastAudio } from '../services/api';
 import { getActivePDFs, upsertPDFs, deletePDF } from '../utils/pdfDb';
 
 const PDFAnalysisWorkspace = () => {
@@ -246,6 +246,12 @@ const PDFAnalysisWorkspace = () => {
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [insightsGenerated, setInsightsGenerated] = useState(false);
   const [podcastGenerating, setPodcastGenerating] = useState(false);
+  const [podcastData, setPodcastData] = useState(null);
+  const [podcastError, setPodcastError] = useState(null);
+  
+  // Center panel API reference for PDF navigation
+  const centerPanelRef = useRef(null);
+  const adobeApisRef = useRef(null);
   // Response flags and insights cache
   const [hasConnectionsResponse, setHasConnectionsResponse] = useState(false);
 
@@ -542,6 +548,13 @@ const PDFAnalysisWorkspace = () => {
     let cancelled = false;
     (async () => {
       if (!selectedTextContext || !selectedFile) return;
+      
+      // Clear previous podcast data when text selection changes
+      setPodcastData(null);
+      setPodcastError(null);
+      setPodcastGenerating(false);
+      console.log('🎵 Cleared podcast state for new text selection');
+      
       try {
         setConnectionsError('');
         setAnalysisLoading(true);
@@ -782,17 +795,277 @@ const PDFAnalysisWorkspace = () => {
     }
   }, [currentPage, selectedFile]);
 
-  const handleGeneratePodcast = useCallback(() => {
-    setPodcastGenerating(true);
-    setTimeout(() => {
-      setPodcastGenerating(false);
-    }, 2000);
+  // Function to navigate to a specific document and page from connections
+  const handleNavigateToDocument = useCallback(async (documentName, pageNumber, snippet = null) => {
+    try {
+      console.log(`🔗 Navigating to document: ${documentName}, page: ${pageNumber}`);
+      
+      // First, check if the document is already loaded in tabs
+      const existingTab = openTabs.find(tab => 
+        tab.file && tab.file.name === documentName
+      );
+      
+      if (existingTab) {
+        // Document is already open, just switch to it and navigate to page
+        console.log('📄 Document already open, switching tab');
+        setActiveTabId(existingTab.id);
+        
+        // Wait a bit for tab switch to complete, then navigate to page
+        setTimeout(() => {
+          if (adobeApisRef.current) {
+            try {
+              console.log(`📍 Navigating to page ${pageNumber}`);
+              // Use Adobe PDF Embed API gotoLocation method
+              if (adobeApisRef.current.gotoLocation) {
+                adobeApisRef.current.gotoLocation(pageNumber, 0, 0)
+                  .then(() => {
+                    console.log(`✅ Successfully navigated to page ${pageNumber}`);
+                  })
+                  .catch((error) => {
+                    console.log('⚠️ Page navigation failed:', error);
+                  });
+              } else {
+                console.log('⚠️ gotoLocation API not available');
+              }
+              
+              // If snippet is provided, try to search for text
+              if (snippet && snippet.trim().length > 3) {
+                setTimeout(() => {
+                  handleHighlightText(snippet);
+                }, 1000); // Wait for page load
+              }
+            } catch (error) {
+              console.warn('Failed to navigate to page:', error);
+            }
+          }
+        }, 300);
+        
+        return;
+      }
+      
+      // Document is not open, we need to load it
+      console.log('📁 Document not open, need to load from backend');
+      
+      // Get the list of available documents from backend
+      try {
+        const documentsResponse = await listDocuments();
+        const document = documentsResponse.documents.find(doc => 
+          doc.filename === documentName
+        );
+        
+        if (!document) {
+          toast.error(`Document "${documentName}" not found`);
+          return;
+        }
+        
+        // Construct the PDF URL from backend
+        const pdfUrl = `http://localhost:8080/static/pdfs/${encodeURIComponent(documentName)}`;
+        
+        // Fetch the PDF file
+        console.log(`📥 Fetching PDF from: ${pdfUrl}`);
+        const response = await fetch(pdfUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch PDF: ${response.statusText}`);
+        }
+        
+        const blob = await response.blob();
+        const file = new File([blob], documentName, { type: 'application/pdf' });
+        
+        // Add file to the file list and create a new tab
+        const newFile = {
+          file: file,
+          name: documentName,
+          id: document.id,
+          size: blob.size,
+          type: 'application/pdf',
+          uploadedAt: new Date().toISOString()
+        };
+        
+        // Update files and tabs
+        setFiles(prevFiles => {
+          const exists = prevFiles.find(f => f.name === documentName);
+          if (exists) return prevFiles;
+          return [...prevFiles, newFile];
+        });
+        
+        const newTabId = `${document.id}-${Date.now()}`;
+        const newTab = { id: newTabId, file: newFile };
+        
+        setOpenTabs(prevTabs => [...prevTabs, newTab]);
+        setActiveTabId(newTabId);
+        setSelectedFile(newFile);
+        
+        // Wait for the PDF to load, then navigate to page
+        setTimeout(() => {
+          if (adobeApisRef.current) {
+            try {
+              console.log(`📍 Navigating to page ${pageNumber} in newly loaded document`);
+              // Use Adobe PDF Embed API gotoLocation method
+              if (adobeApisRef.current.gotoLocation) {
+                adobeApisRef.current.gotoLocation(pageNumber, 0, 0)
+                  .then(() => {
+                    console.log(`✅ Successfully navigated to page ${pageNumber} in new document`);
+                  })
+                  .catch((error) => {
+                    console.log('⚠️ Page navigation failed in new document:', error);
+                  });
+              } else {
+                console.log('⚠️ gotoLocation API not available');
+              }
+              
+              // If snippet is provided, try to search for text
+              if (snippet && snippet.trim().length > 3) {
+                setTimeout(() => {
+                  handleHighlightText(snippet);
+                }, 1500); // Wait longer for new document to load
+              }
+            } catch (error) {
+              console.warn('Failed to navigate to page in new document:', error);
+            }
+          }
+        }, 2000); // Wait longer for new document to fully load
+        
+        toast.success(`Opened "${documentName}" and navigated to page ${pageNumber}`);
+        
+      } catch (error) {
+        console.error('Failed to load document from backend:', error);
+        toast.error(`Failed to load document "${documentName}"`);
+      }
+      
+    } catch (error) {
+      console.error('Error in handleNavigateToDocument:', error);
+      toast.error('Failed to navigate to document');
+    }
+  }, [openTabs, setActiveTabId, setOpenTabs, setSelectedFile, setFiles]);
+
+  // Function to highlight specific text in the PDF using Adobe PDF Embed API
+  const handleHighlightText = useCallback((searchText) => {
+    if (!adobeApisRef.current || !searchText || searchText.trim().length < 3) {
+      return;
+    }
+    
+    try {
+      console.log(`🔍 Attempting to search for text: "${searchText.substring(0, 50)}..."`);
+      
+      // Use Adobe PDF Embed API search functionality
+      if (adobeApisRef.current.search) {
+        adobeApisRef.current.search(searchText.trim())
+          .then((searchObject) => {
+            console.log('✅ Text search initiated successfully', searchObject);
+            // Search object contains methods: onResultsUpdate, next, previous, clear
+            if (searchObject && searchObject.onResultsUpdate) {
+              // Register callback to track search results
+              searchObject.onResultsUpdate((searchResult) => {
+                console.log('📍 Search result found:', searchResult);
+                if (searchResult.totalResults > 0) {
+                  toast.success(`Found "${searchText.substring(0, 30)}..." (${searchResult.totalResults} results)`);
+                } else {
+                  toast.info(`Text "${searchText.substring(0, 30)}..." not found in document`);
+                }
+              });
+            }
+          })
+          .catch((error) => {
+            console.log('⚠️ Text search failed:', error);
+            // Fallback: Just show info about the text to look for
+            toast.info(`Look for: "${searchText.substring(0, 50)}..."`);
+          });
+      } else {
+        // Fallback: Log the text to look for
+        console.log('ℹ️ Search API not available');
+        toast.info(`Look for: "${searchText.substring(0, 50)}..."`);
+      }
+    } catch (error) {
+      console.warn('Failed to search text:', error);
+    }
   }, []);
 
-  // On Insights tab click: show tab and hydrate from cache if needed; no API call here
+  // Callback to receive Adobe APIs from CenterPanel
+  const handleAdobeApisReady = useCallback((apis) => {
+    console.log('🔌 Adobe APIs ready in ResultAnalysis');
+    adobeApisRef.current = apis;
+  }, []);
+
+  const handleGeneratePodcast = useCallback(async () => {
+    try {
+      setPodcastGenerating(true);
+      setPodcastError(null);
+      
+      // Get selected text context and insights data
+      if (!selectedTextContext || !selectedTextContext.text) {
+        toast.error('Please select some text first to generate a podcast');
+        return;
+      }
+
+      if (!selectedFile) {
+        toast.error('No document selected');
+        return;
+      }
+
+      // Get server document ID for proper backend mapping
+      const serverDocId = getServerDocumentId();
+      if (!serverDocId) {
+        toast.error('Document mapping not found. Please try reloading the page.');
+        return;
+      }
+
+      // Get insights from localStorage or current state
+      let insights = [];
+      if (insightsData && insightsData.insights) {
+        insights = insightsData.insights;
+      } else {
+        // Try to get from localStorage cache
+        const cacheKey = `insights_${selectedFile.id}_${selectedTextContext.text.substring(0, 50)}`;
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          try {
+            const parsedCache = JSON.parse(cached);
+            if (parsedCache.data && parsedCache.data.insights) {
+              insights = parsedCache.data.insights;
+            }
+          } catch (e) {
+            console.warn('Failed to parse cached insights:', e);
+          }
+        }
+      }
+
+      if (!insights || insights.length === 0) {
+        toast.error('No insights available. Please generate insights first by selecting text.');
+        return;
+      }
+
+      console.log('Generating podcast with insights:', insights);
+      console.log('Selected text:', selectedTextContext.text);
+      console.log('Document ID:', serverDocId);
+
+      // Call the podcast generation API
+      const podcastResult = await generatePodcastAudio({
+        selected_text: selectedTextContext.text,
+        insights: insights,
+        document_id: serverDocId,
+        format: 'podcast',
+        duration: 'medium'
+      });
+
+      console.log('Podcast generated successfully:', podcastResult);
+      setPodcastData(podcastResult);
+      toast.success('Podcast generated successfully!');
+      
+    } catch (error) {
+      console.error('Error generating podcast:', error);
+      setPodcastError(error.message || 'Failed to generate podcast');
+      toast.error(error.message || 'Failed to generate podcast');
+    } finally {
+      setPodcastGenerating(false);
+    }
+  }, [selectedTextContext, selectedFile, getServerDocumentId, insightsData]);
+
+  // On Insights tab click: show tab and hydrate from cache only (no API call)
   const handleInsightsTabClick = useCallback(async () => {
     setRightPanelVisible(true);
     setActiveInsightTab('insights');
+    
+    // Only hydrate from cache, insights should already be generated after text selection
     try {
       if (!selectedTextContext || !selectedTextContext.text || !selectedFile) return;
       const serverDocId = getServerDocumentId();
@@ -806,8 +1079,12 @@ const PDFAnalysisWorkspace = () => {
         console.log('✅ Tab click - Hydrating insights from cache for key:', cacheKey);
         setInsightsData(cachedEntry);
         setInsightsError('');
+      } else if (!cachedEntry) {
+        console.log('⚠️ No cached insights found for text selection. Insights should be generated automatically after text selection.');
       }
-    } catch {}
+    } catch (e) {
+      console.warn('Error hydrating insights from cache:', e);
+    }
   }, [selectedTextContext, selectedFile, getServerDocumentId, setActiveInsightTab, setRightPanelVisible, insightsData]);
 
   // Enhanced file upload handler
@@ -1271,10 +1548,12 @@ const PDFAnalysisWorkspace = () => {
           setRightPanelVisible={setRightPanelVisible}
           onFileUpload={handleFileUpload}
           onFileDelete={handleFileDelete}
+          onNavigateToDocument={handleNavigateToDocument}
         />
 
         {/* CENTER PANEL - Premium PDF Viewer */}
         <CenterPanel
+          ref={centerPanelRef}
           selectedFile={selectedFile}
           openTabs={openTabs}
           activeTabId={activeTabId}
@@ -1293,6 +1572,7 @@ const PDFAnalysisWorkspace = () => {
           setAnalysisLoading={setAnalysisLoading}
           setInsightsGenerated={setInsightsGenerated}
           goldenTransition={goldenTransition}
+          onAdobeApisReady={handleAdobeApisReady}
         />
 
         {/* RIGHT PANEL - Dynamic Insights & Analysis */}
@@ -1302,6 +1582,8 @@ const PDFAnalysisWorkspace = () => {
           activeInsightTab={activeInsightTab}
           analysisLoading={analysisLoading}
           podcastGenerating={podcastGenerating}
+          podcastData={podcastData}
+          podcastError={podcastError}
           setRightPanelVisible={setRightPanelVisible}
           setActiveInsightTab={setActiveInsightTab}
           handleGeneratePodcast={handleGeneratePodcast}
@@ -1313,6 +1595,7 @@ const PDFAnalysisWorkspace = () => {
           insightsData={insightsData}
           insightsError={insightsError}
           hasConnectionsResponse={hasConnectionsResponse}
+          onNavigateToDocument={handleNavigateToDocument}
         />
         <InsightDetailModal
           insight={selectedInsight}

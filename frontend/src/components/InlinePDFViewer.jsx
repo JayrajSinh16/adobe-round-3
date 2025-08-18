@@ -133,6 +133,7 @@ const InlinePDFViewer = ({ file, onSelection, onGenerateInsights, onApisReady, c
         showPrintPDF: true,
         showAnnotationTools: true,
         enableTextSelection: true,
+        enableSearchAPIs: true,
       };
 
     const previewPromise = view.previewFile({ content, metaData }, viewerConfig);

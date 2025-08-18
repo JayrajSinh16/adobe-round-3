@@ -136,7 +136,65 @@ export const deleteDocument = async (documentId) => {
   }
 };
 
-// Generate podcast function
+// Generate podcast function with proper backend integration
+export const generatePodcastAudio = async ({ selected_text, insights, document_id, format = 'podcast', duration = 'medium' }) => {
+  try {
+    // Build the request payload matching the backend PodcastRequest model
+    const payload = {
+      selected_text: selected_text || '',
+      insights: Array.isArray(insights) ? insights.map(insight => ({
+        type: insight.type || 'key_takeaways',
+        title: insight.title || 'Insight',
+        content: insight.content || insight.insight || '',
+        source_documents: Array.isArray(insight.source_documents) ? insight.source_documents.map(doc => ({
+          pdf_name: doc.pdf_name || doc.document || doc.name || 'Document',
+          pdf_id: doc.pdf_id || doc.id || document_id || '',
+          page: doc.page || 1,
+        })) : [{
+          pdf_name: 'Current Document',
+          pdf_id: document_id || '',
+          page: 1,
+        }],
+        confidence: Number(insight.confidence) || 0.8,
+      })) : [],
+      format: format,
+      duration: duration
+    };
+
+    console.log('Generating podcast with payload:', payload);
+
+    const response = await api.post('/api/podcast/generate-audio', payload, {
+      responseType: 'blob', // Receive audio file as blob
+      timeout: 60000, // 60 second timeout for audio generation
+    });
+
+    // Create object URL for the audio blob
+    const audioBlob = response.data;
+    const audioUrl = URL.createObjectURL(audioBlob);
+
+    // Extract metadata from headers
+    const headers = response.headers;
+    const transcript = headers['x-transcript'] || '';
+    const audioDuration = parseFloat(headers['x-duration']) || 0;
+    const audioFormat = headers['x-format'] || format;
+    const fileSize = parseInt(headers['x-file-size']) || 0;
+
+    return {
+      audioUrl,
+      audioBlob,
+      transcript,
+      duration: audioDuration,
+      format: audioFormat,
+      fileSize,
+      success: true
+    };
+  } catch (error) {
+    console.error('Error generating podcast:', error);
+    throw new Error(error.response?.data?.message || 'Failed to generate podcast audio');
+  }
+};
+
+// Generate podcast function (legacy - keep for compatibility)
 export const generatePodcast = async (content, documentIds = []) => {
   try {
     const response = await api.post('/api/podcast/generate', {

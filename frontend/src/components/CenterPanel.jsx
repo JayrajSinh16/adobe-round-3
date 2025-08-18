@@ -21,18 +21,28 @@ const CenterPanel = ({
   setActiveInsightTab,
   setAnalysisLoading,
   setInsightsGenerated,
-  goldenTransition
+  goldenTransition,
+  onAdobeApisReady
 }) => {
   // Keep a map of tabId -> apis
   const apisRefMap = useRef(new Map());
 
   const onApisReady = useCallback((tabId, apis) => {
     apisRefMap.current.set(tabId, apis);
-  }, []);
+    // Forward the active tab's APIs to the parent component
+    if (tabId === activeTabId && onAdobeApisReady) {
+      onAdobeApisReady(apis);
+    }
+  }, [activeTabId, onAdobeApisReady]);
 
   const activeApis = useMemo(() => {
-    return activeTabId ? apisRefMap.current.get(activeTabId) : null;
-  }, [activeTabId]);
+    const apis = activeTabId ? apisRefMap.current.get(activeTabId) : null;
+    // Update parent component with the current active APIs
+    if (apis && onAdobeApisReady) {
+      onAdobeApisReady(apis);
+    }
+    return apis;
+  }, [activeTabId, onAdobeApisReady]);
 
   const onSelection = useCallback(({ text, page, position }) => {
     if (!text) return;

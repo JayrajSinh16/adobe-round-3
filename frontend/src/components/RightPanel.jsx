@@ -19,6 +19,8 @@ const RightPanel = ({
   activeInsightTab,
   analysisLoading,
   podcastGenerating,
+  podcastData,
+  podcastError,
   setRightPanelVisible,
   setActiveInsightTab,
   handleGeneratePodcast,
@@ -30,6 +32,7 @@ const RightPanel = ({
   insightsData,
   insightsError,
   hasConnectionsResponse,
+  onNavigateToDocument,
 }) => {
   const goldenRatio = 1.618;
   const premiumEasing = [0.25, 0.46, 0.45, 0.94];
@@ -414,7 +417,24 @@ const RightPanel = ({
                                   <div className="flex items-center space-x-3 w-full">
                                     <div className="w-2 h-2 bg-[#DC2626] rounded-full opacity-60" />
                                     <div className='flex justify-between w-full items-center space-x-2'>
-                                      <div className="text-sm font-medium text-[#1A1A1A]">{toText(connection.document, 'Unknown')}</div>
+                                      <div 
+                                        className="text-sm font-medium text-[#1A1A1A] hover:text-[#DC2626] cursor-pointer transition-colors duration-300"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          const documentName = toText(connection.document, '');
+                                          const pageNumber = Array.isArray(connection.pages) && connection.pages.length > 0 ? connection.pages[0] : 1;
+                                          const snippet = toText(connection.snippet, '');
+                                          
+                                          if (documentName && onNavigateToDocument) {
+                                            console.log(`🔗 Connection card clicked: ${documentName}, page ${pageNumber}`);
+                                            onNavigateToDocument(documentName, pageNumber, snippet);
+                                          }
+                                        }}
+                                        title={`Click to open ${toText(connection.document, '')} and navigate to page ${Array.isArray(connection.pages) && connection.pages.length > 0 ? connection.pages[0] : 1}`}
+                                      >
+                                        {toText(connection.document, 'Unknown')}
+                                      </div>
                                       <div className="text-xs text-[#1A1A1A] opacity-60">
                                         Page {Array.isArray(connection.pages) && connection.pages.length > 0 ? connection.pages[0] : 1}
                                       </div>
@@ -442,8 +462,11 @@ const RightPanel = ({
                   {activeInsightTab === 'podcast' && (
                     <PodcastTab 
                       podcastGenerating={podcastGenerating}
+                      podcastData={podcastData}
+                      podcastError={podcastError}
                       handleGeneratePodcast={handleGeneratePodcast}
                       premiumEasing={premiumEasing}
+                      selectedTextContext={selectedTextContext}
                     />
                   )}
                 </div>
