@@ -46,11 +46,7 @@ const CenterPanel = ({
     });
     setRightPanelVisible(true);
     setActiveInsightTab('connections');
-    setAnalysisLoading(true);
-    setTimeout(() => {
-      setAnalysisLoading(false);
-      setInsightsGenerated(true);
-    }, 1200);
+  setAnalysisLoading(true);
   }, [selectedFile, setSelectedText, setSelectedTextContext, setRightPanelVisible, setActiveInsightTab, setAnalysisLoading, setInsightsGenerated]);
 
   // Also send selection to Insights consumers (no tab switch)

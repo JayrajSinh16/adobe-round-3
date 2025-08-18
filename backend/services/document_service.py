@@ -311,6 +311,28 @@ class DocumentService:
     def get_all_documents(self) -> List[DocumentInfo]:
         """Get all documents"""
         return list(self.documents.values())
+
+    def get_document_by_filename(self, filename: str) -> Optional[DocumentInfo]:
+        """Get a document by its filename (exact match).
+        This helps map connections that come back with document names.
+        """
+        if not filename:
+            return None
+        # Exact match first
+        for doc in self.documents.values():
+            if doc.filename == filename:
+                return doc
+        # Try a relaxed match ignoring common duplicate suffixes and case
+        import os as _os
+        import re as _re
+        target_base = _os.path.splitext(filename)[0]
+        target_base = _re.sub(r'_\d+$', '', target_base).lower()
+        for doc in self.documents.values():
+            base = _os.path.splitext(doc.filename)[0]
+            base = _re.sub(r'_\d+$', '', base).lower()
+            if base == target_base:
+                return doc
+        return None
     
     def delete_document(self, doc_id: str) -> bool:
         """Delete a document and its associated files"""

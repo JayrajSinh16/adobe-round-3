@@ -26,6 +26,10 @@ const RightPanel = ({
   onInsightClick,
   connectionsData,
   connectionsError,
+  onInsightsTabClick,
+  insightsData,
+  insightsError,
+  hasConnectionsResponse,
 }) => {
   const goldenRatio = 1.618;
   const premiumEasing = [0.25, 0.46, 0.45, 0.94];
@@ -233,7 +237,13 @@ const RightPanel = ({
                   ].map((tab, index) => (
                     <motion.button
                       key={tab.id}
-                      onClick={() => setActiveInsightTab(tab.id)}
+                      onClick={() => {
+                        if (tab.id === 'insights' && typeof onInsightsTabClick === 'function') {
+                          onInsightsTabClick();
+                        } else {
+                          setActiveInsightTab(tab.id);
+                        }
+                      }}
                       className={`flex-1 relative flex items-center justify-center space-x-2 px-4 py-4 rounded-xl font-semibold text-sm transition-all duration-500 overflow-hidden ${
                         activeInsightTab === tab.id
                           ? 'bg-white text-[#DC2626] shadow-md'
@@ -345,9 +355,9 @@ const RightPanel = ({
                             {connectionsError}
                           </div>
                         )}
-                        {!connectionsError && (connectionsData?.connections || []).length === 0 && (
+                        {!connectionsError && hasConnectionsResponse && (connectionsData?.connections || []).length === 0 && (
                           <div className="p-4 border border-gray-200 bg-gray-50 text-sm text-gray-700 rounded-xl">
-                            No connections found yet. Select text in the PDF to analyze.
+                            No connections found.
                           </div>
                         )}
                         {(Array.isArray(connectionsData?.connections) ? connectionsData.connections : []).map((connection, index) => (
@@ -420,7 +430,13 @@ const RightPanel = ({
                   )}
 
                   {/* INSIGHTS TAB - Innovative insight cards with deep intelligence */}
-                  {activeInsightTab === 'insights' && <InsightsTab onInsightClick={onInsightClick} />}
+                  {activeInsightTab === 'insights' && (
+                    <InsightsTab 
+                      onInsightClick={onInsightClick} 
+                      insightsData={insightsData}
+                      insightsError={insightsError}
+                    />
+                  )}
 
                   {/* PODCAST TAB - Premium audio generation */}
                   {activeInsightTab === 'podcast' && (

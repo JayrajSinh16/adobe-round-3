@@ -11,7 +11,7 @@ import LeftPanel from './LeftPanel';
 import CenterPanel from './CenterPanel';
 import RightPanel from './RightPanel';
 import InsightDetailModal from './modals/InsightDetailModal';
-import { uploadDocuments, findConnections } from '../services/api';
+import { uploadDocuments, findConnections, generateInsights, listDocuments, fetchKeyTakeaway, fetchDidYouKnow, fetchContradictions, fetchExamples, fetchCrossReferences } from '../services/api';
 import { getActivePDFs, upsertPDFs, deletePDF } from '../utils/pdfDb';
 
 const PDFAnalysisWorkspace = () => {
@@ -79,6 +79,9 @@ const PDFAnalysisWorkspace = () => {
   const [activeInsightTab, setActiveInsightTab] = useState('connections');
   const [connectionsData, setConnectionsData] = useState({ connections: [], summary: '', processing_time: 0 });
   const [connectionsError, setConnectionsError] = useState('');
+  const [insightsData, setInsightsData] = useState({ insights: [], selected_text: '', processing_time: 0 });
+  const [insightsError, setInsightsError] = useState('');
+  const backendDocIdMapRef = useRef(new Map()); // filename|size -> backend id
   const [searchTerm, setSearchTerm] = useState('');
   // Insight modal state (LIFTED)
   const [selectedInsight, setSelectedInsight] = useState(null);
@@ -92,7 +95,49 @@ const PDFAnalysisWorkspace = () => {
   const [insightsGenerated, setInsightsGenerated] = useState(false);
   // Podcast State
   const [podcastGenerating, setPodcastGenerating] = useState(false);
+  // Response flags and insights cache
+  const [hasConnectionsResponse, setHasConnectionsResponse] = useState(false);
+
+  // Insights cache helpers (localStorage)
+  const INSIGHTS_CACHE_KEY = 'insightsCacheV2';
+  const INSIGHTS_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes TTL
+  const getInsightsCache = () => {
+    try {
+      const raw = localStorage.getItem(INSIGHTS_CACHE_KEY);
+      const cache = raw ? JSON.parse(raw) : {};
+      // Clean expired entries
+      const now = Date.now();
+      let changed = false;
+      Object.keys(cache).forEach((k) => {
+        const ts = cache[k]?.__ts;
+        if (!ts || now - ts > INSIGHTS_CACHE_TTL_MS) {
+          delete cache[k];
+          changed = true;
+        }
+      });
+      if (changed) {
+        try { localStorage.setItem(INSIGHTS_CACHE_KEY, JSON.stringify(cache)); } catch {}
+      }
+      return cache;
+    } catch {
+      return {};
+    }
+  };
+  const setInsightsCache = (cache) => {
+    try { localStorage.setItem(INSIGHTS_CACHE_KEY, JSON.stringify(cache)); } catch {}
+  };
+  const makeInsightsKey = (serverDocId, page, text) => {
+    const normText = (text || '').trim();
+    return `${serverDocId}|${page}|${normText}`;
+  };
   
+  // Helper: map current selectedFile to backend doc id using filename
+  const getServerDocumentId = useCallback(() => {
+    if (!selectedFile?.name) return '';
+    const key = String(selectedFile.name).toLowerCase();
+    return backendDocIdMapRef.current.get(key) || String(selectedFile.id || '');
+  }, [selectedFile]);
+
   // If no files came via navigation, try to hydrate from IndexedDB on mount
   useEffect(() => {
     let cancelled = false;
@@ -127,6 +172,28 @@ const PDFAnalysisWorkspace = () => {
       }
     })();
     return () => { cancelled = true; };
+  }, []);
+
+  // Build backend filename -> id map once and keep refreshed
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      try {
+        const resp = await listDocuments(); // { documents: [...], total }
+        const docs = Array.isArray(resp?.documents) ? resp.documents : [];
+        const map = new Map();
+        docs.forEach((d) => {
+          if (d?.filename && d?.id) {
+            map.set(String(d.filename).toLowerCase(), String(d.id));
+          }
+        });
+        if (!cancel) backendDocIdMapRef.current = map;
+      } catch (e) {
+        // non-fatal
+        console.warn('Failed to sync backend documents:', e?.message || e);
+      }
+    })();
+    return () => { cancel = true; };
   }, []);
 
   // Reconcile state with IndexedDB periodically and on tab visibility changes
@@ -184,16 +251,82 @@ const PDFAnalysisWorkspace = () => {
   }, [files, selectedFile]);
   
   // Handler to open modal from anywhere
-  const handleInsightClick = (insight) => {
-    setSelectedInsight(insight);
-    setIsModalOpen(true);
+  const handleInsightClick = async (insight) => {
+    try {
+      if (!insight) return;
+      if (!selectedTextContext || !selectedTextContext.text || !selectedFile) {
+        setSelectedInsight(insight);
+        setIsModalOpen(true);
+        return;
+      }
+
+      const serverDocId = getServerDocumentId();
+      if (!serverDocId) {
+        setSelectedInsight(insight);
+        setIsModalOpen(true);
+        return;
+      }
+
+      const page_no = selectedTextContext.page || 1;
+      const respond = {
+        // Map UI card type to backend request 'respond.type'
+        type: insight.type || 'key_takeaways',
+        title: insight.title || 'Insight',
+        content: insight.content || insight.insight || '',
+        source_documents: (Array.isArray(insight.source_documents) ? insight.source_documents.map(s => ({
+          pdf_name: s.pdf_name || s.document || s.name || selectedFile?.name || 'Current Document',
+          pdf_id: s.pdf_id || '',
+          page: s.page || page_no,
+        })) : []),
+        confidence: Number(insight.confidence) || 0,
+      };
+
+      const baseArgs = {
+        selected_text: selectedTextContext.text,
+        document_id: serverDocId,
+        page_no,
+        respond,
+      };
+
+      let data;
+      switch (insight.type) {
+        case 'key_takeaways':
+        case 'key_takeaway':
+          data = await fetchKeyTakeaway({ ...baseArgs, insight_type: 'key_takeaway' });
+          break;
+        case 'did_you_know':
+          data = await fetchDidYouKnow({ ...baseArgs, insight_type: 'did_you_know' });
+          break;
+        case 'contradictions':
+          data = await fetchContradictions({ ...baseArgs, insight_type: 'contradictions' });
+          break;
+        case 'examples':
+          data = await fetchExamples({ ...baseArgs, insight_type: 'examples' });
+          break;
+        case 'cross_references':
+          data = await fetchCrossReferences({ ...baseArgs, insight_type: 'cross_references' });
+          break;
+        default:
+          data = null;
+      }
+
+      // Pass the backend result into modal-friendly shape by merging
+      const merged = data ? { ...insight, ...data } : insight;
+      console.log('Individual insight modal data:', merged);
+      setSelectedInsight(merged);
+      setIsModalOpen(true);
+    } catch (err) {
+      console.warn('Failed to fetch individual insight:', err?.message || err);
+      setSelectedInsight(insight);
+      setIsModalOpen(true);
+    }
   };
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedInsight(null);
   };
 
-  // Kick off connections fetch when text is selected and panel shows
+  // Kick off connections fetch when text is selected and panel shows; prefetch insights afterwards
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -201,28 +334,72 @@ const PDFAnalysisWorkspace = () => {
       try {
         setConnectionsError('');
         setAnalysisLoading(true);
+        setHasConnectionsResponse(false);
+        // Map to server document ID to ensure backend cross-references correctly
+        const serverDocId = getServerDocumentId();
+        if (!serverDocId) {
+          throw new Error('Document mapping not found for connections');
+        }
         const payload = {
           selected_text: selectedTextContext.text,
-          // Coerce to string to satisfy backend (pydantic expects string)
-          current_document_id: String(selectedFile.id || selectedFile.name || ''),
+          current_document_id: serverDocId,
           current_page: selectedTextContext.page || 1,
           context_before: '',
           context_after: '',
         };
+        console.log('Calling connections with payload:', payload);
         const data = await findConnections(payload);
         if (cancelled) return;
         setConnectionsData(data || { connections: [], summary: '', processing_time: 0 });
         setInsightsGenerated(true);
+        console.log('Connections set with data:', data);
       } catch (e) {
         if (cancelled) return;
         setConnectionsError(e?.message || 'Failed to load connections');
         setConnectionsData({ connections: [], summary: '', processing_time: 0 });
+        console.warn('Connections error:', e?.message || e);
       } finally {
-        if (!cancelled) setAnalysisLoading(false);
+        if (!cancelled) {
+          setAnalysisLoading(false);
+          setHasConnectionsResponse(true);
+        }
+      }
+
+      // Prefetch insights or hydrate from cache without blocking UI
+      try {
+        if (cancelled) return;
+        if (!selectedTextContext || !selectedTextContext.text || !selectedFile) return;
+        const serverDocId2 = getServerDocumentId();
+        if (!serverDocId2) return;
+        const page = selectedTextContext.page || 1;
+        const cache = getInsightsCache();
+        const cacheKey = makeInsightsKey(serverDocId2, page, selectedTextContext.text);
+        if (cache[cacheKey] && cache[cacheKey]?.selected_text === selectedTextContext.text) {
+          console.log('Hydrating insights from cache for key:', cacheKey);
+          setInsightsData(cache[cacheKey]);
+          setInsightsError('');
+          return;
+        }
+        console.log('Prefetching insights with payload:', { selected_text: selectedTextContext.text, document_id: serverDocId2, page_number: page });
+        const insights = await generateInsights({
+          selected_text: selectedTextContext.text,
+          document_id: serverDocId2,
+          page_number: page,
+        });
+        if (cancelled) return;
+        setInsightsData(insights || { insights: [], selected_text: '', processing_time: 0 });
+        setInsightsError('');
+        const next = { ...cache, [cacheKey]: { ...insights, __ts: Date.now() } };
+        setInsightsCache(next);
+        console.log('Cached insights under key:', cacheKey);
+      } catch (ie) {
+        if (cancelled) return;
+        setInsightsError(ie?.message || 'Failed to generate insights');
+        console.warn('Insights prefetch error:', ie?.message || ie);
       }
     })();
     return () => { cancelled = true; };
-  }, [selectedTextContext, selectedFile]);
+  }, [selectedTextContext, selectedFile, getServerDocumentId]);
 
   // Animation configs
   const goldenTransition = {
@@ -389,6 +566,25 @@ const PDFAnalysisWorkspace = () => {
       setPodcastGenerating(false);
     }, 2000);
   }, []);
+
+  // On Insights tab click: show tab and hydrate from cache if needed; no API call here
+  const handleInsightsTabClick = useCallback(async () => {
+    setRightPanelVisible(true);
+    setActiveInsightTab('insights');
+    try {
+      if (!selectedTextContext || !selectedTextContext.text || !selectedFile) return;
+      const serverDocId = getServerDocumentId();
+      if (!serverDocId) return;
+      const page = selectedTextContext.page || 1;
+      const cache = getInsightsCache();
+      const cacheKey = makeInsightsKey(serverDocId, page, selectedTextContext.text);
+      if (cache[cacheKey] && cache[cacheKey]?.selected_text === selectedTextContext.text && (!insightsData || (insightsData.insights || []).length === 0)) {
+        console.log('Hydrating insights from cache on tab click for key:', cacheKey);
+        setInsightsData(cache[cacheKey]);
+        setInsightsError('');
+      }
+    } catch {}
+  }, [selectedTextContext, selectedFile, getServerDocumentId, setActiveInsightTab, setRightPanelVisible, insightsData]);
 
   // Enhanced file upload handler
   const handleFileUpload = useCallback(async (incomingFiles) => {
@@ -889,6 +1085,10 @@ const PDFAnalysisWorkspace = () => {
           onInsightClick={handleInsightClick}
           connectionsData={connectionsData}
           connectionsError={connectionsError}
+          onInsightsTabClick={handleInsightsTabClick}
+          insightsData={insightsData}
+          insightsError={insightsError}
+          hasConnectionsResponse={hasConnectionsResponse}
         />
         <InsightDetailModal
           insight={selectedInsight}

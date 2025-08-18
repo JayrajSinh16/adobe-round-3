@@ -1,5 +1,5 @@
 # Insights endpoints
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from models import InsightRequest, InsightResponse
 from services import insights_service
 
@@ -13,8 +13,10 @@ async def generate_insights(request: InsightRequest):
             selected_text=request.selected_text,
             document_id=request.document_id,
             page_number=request.page_number,
-            insight_types=request.insight_types
+            insight_types=request.insight_types,
         )
         return response
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Return a safe empty response instead of 500 to keep UX smooth
+        print(f"/api/insights/generate error: {e}")
+        return InsightResponse(insights=[], selected_text=request.selected_text, processing_time=0.0)

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from models import ConnectionRequest, ConnectionResponse
 from services import connection_service
 
@@ -12,8 +12,10 @@ async def find_connections(request: ConnectionRequest):
             selected_text=request.selected_text,
             current_doc_id=request.current_document_id,
             context_before=request.context_before,
-            context_after=request.context_after
+            context_after=request.context_after,
         )
         return response
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Return a safe empty response instead of 500 to keep UX smooth
+        print(f"/api/connections/find error: {e}")
+        return ConnectionResponse(connections=[], summary="", processing_time=0.0)
