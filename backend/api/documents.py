@@ -63,6 +63,19 @@ async def list_documents():
         total=len(documents)
     )
 
+@router.post("/sync")
+async def sync_documents():
+    """Sync document index with filesystem (useful after manual file operations)"""
+    try:
+        document_service.sync_with_filesystem()
+        documents = document_service.get_all_documents()
+        return {
+            "message": "Document index synced successfully",
+            "total_documents": len(documents)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/{document_id}", response_model=DocumentInfo)
 async def get_document(document_id: str):
     """Get document by ID"""
