@@ -164,3 +164,102 @@ export const downloadPodcast = async (podcastId) => {
 };
 
 export default api;
+
+// Search API functions
+export const searchHeadings = async (query, limit = 10) => {
+  try {
+    const response = await api.get('/api/search/headings', {
+      params: { query, limit }
+    });
+    return response.data;
+  } catch (error) {
+    const msg = error.response?.data?.detail || error.response?.data?.message || 'Failed to search headings';
+    throw new Error(msg);
+  }
+};
+
+export const getHeadingsByLevel = async (level) => {
+  try {
+    const response = await api.get(`/api/search/by-level/${level}`);
+    return response.data;
+  } catch (error) {
+    const msg = error.response?.data?.detail || error.response?.data?.message || 'Failed to get headings by level';
+    throw new Error(msg);
+  }
+};
+
+// Connections: find cross-document connections for selected text
+export const findConnections = async ({ selected_text, current_document_id, current_page, context_before = '', context_after = '' }) => {
+  // Input sanitation to satisfy backend schema and avoid 422
+  const toStringSafe = (v) => {
+    if (v == null) return '';
+    try {
+      return typeof v === 'string' ? v : String(v);
+    } catch {
+      return '';
+    }
+  };
+  const toNumberSafe = (v, fallback = 1) => {
+    const n = Number.parseInt(v, 10);
+    return Number.isFinite(n) && n > 0 ? n : fallback;
+  };
+
+  const payload = {
+    selected_text: toStringSafe(selected_text),
+    current_document_id: toStringSafe(current_document_id),
+    current_page: toNumberSafe(current_page, 1),
+    context_before: toStringSafe(context_before),
+    context_after: toStringSafe(context_after),
+  };
+
+  if (!payload.selected_text?.trim()) {
+    throw new Error('No selected text provided');
+  }
+  if (!payload.current_document_id?.trim()) {
+    throw new Error('Missing document identifier');
+  }
+
+  try {
+    const response = await api.post('/api/connections/find', payload);
+
+    // Normalize shape to avoid rendering [object Object] in UI
+    const asString = (v) => {
+      if (v == null) return '';
+      if (typeof v === 'string') return v;
+      if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+      // common cases: { text: '...', name: '...' }
+      if (typeof v === 'object') return v.text || v.name || JSON.stringify(v);
+      try { return String(v); } catch { return ''; }
+    };
+    const pagesToArray = (p) => {
+      if (Array.isArray(p)) return p.filter((x) => Number.isFinite(Number(x))).map((x) => Number(x));
+      if (Number.isFinite(Number(p))) return [Number(p)];
+      return [];
+    };
+
+    const data = response?.data || {};
+    const normalized = {
+      connections: Array.isArray(data.connections)
+        ? data.connections.map((c) => ({
+            title: asString(c?.title),
+            type: asString(c?.type),
+            document: asString(c?.document?.name ?? c?.document),
+            pages: pagesToArray(c?.pages),
+            snippet: asString(c?.snippet),
+            strength: asString(c?.strength) || 'medium',
+          }))
+        : [],
+      summary: asString(data.summary),
+      processing_time: Number(data.processing_time) || 0,
+    };
+
+    return normalized; // { connections: [...], summary: string, processing_time: number }
+  } catch (error) {
+    const detail = error.response?.data?.detail;
+    // Pydantic detail can be array or string
+    const msg = Array.isArray(detail)
+      ? (detail[0]?.msg || 'Failed to fetch connections')
+      : (detail || error.response?.data?.message || 'Failed to fetch connections');
+    throw new Error(msg);
+  }
+};

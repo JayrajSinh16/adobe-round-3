@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, Brain, Target, FileText
 } from 'lucide-react';
+import { searchHeadings } from '../../services/api';
 
 const SemanticSearch = ({
   filteredFiles,
@@ -19,31 +20,7 @@ const SemanticSearch = ({
   const [semanticResults, setSemanticResults] = useState([]);
   const [clickingFile, setClickingFile] = useState(null); // Track which file is being clicked
 
-  // Dummy semantic search data - replace with actual API call
-  const dummySemanticData = {
-    'financial analysis': [
-      { fileId: 'file1', heading: 'Quarterly Financial Report', relevanceScore: 0.95, context: 'Revenue analysis and profit margins' },
-      { fileId: 'file2', heading: 'Budget Analysis 2024', relevanceScore: 0.87, context: 'Cost breakdown and financial planning' },
-      { fileId: 'file3', heading: 'Investment Strategy', relevanceScore: 0.82, context: 'Portfolio management and ROI calculations' }
-    ],
-    'market research': [
-      { fileId: 'file2', heading: 'Consumer Behavior Study', relevanceScore: 0.92, context: 'Market trends and customer preferences' },
-      { fileId: 'file4', heading: 'Competitive Analysis', relevanceScore: 0.88, context: 'Industry benchmarking and market positioning' },
-      { fileId: 'file1', heading: 'Market Segmentation', relevanceScore: 0.79, context: 'Target audience identification' }
-    ],
-    'technology trends': [
-      { fileId: 'file3', heading: 'AI Implementation Guide', relevanceScore: 0.94, context: 'Machine learning applications and best practices' },
-      { fileId: 'file1', heading: 'Digital Transformation', relevanceScore: 0.86, context: 'Technology adoption strategies' },
-      { fileId: 'file4', heading: 'Cloud Infrastructure', relevanceScore: 0.81, context: 'Scalable architecture and deployment' }
-    ],
-    'project management': [
-      { fileId: 'file4', heading: 'Agile Methodology', relevanceScore: 0.91, context: 'Sprint planning and team coordination' },
-      { fileId: 'file2', heading: 'Resource Allocation', relevanceScore: 0.84, context: 'Team management and budget planning' },
-      { fileId: 'file3', heading: 'Risk Assessment', relevanceScore: 0.78, context: 'Project risk mitigation strategies' }
-    ]
-  };
-
-  // Semantic search function with debouncing
+  // Semantic search function with API integration
   const performSemanticSearch = useCallback(async (query) => {
     if (!query.trim()) {
       setSemanticResults([]);
@@ -52,39 +29,29 @@ const SemanticSearch = ({
 
     setIsSearching(true);
     
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Find matching results from dummy data
-    const normalizedQuery = query.toLowerCase();
-    let results = [];
-    
-    Object.entries(dummySemanticData).forEach(([category, items]) => {
-      if (category.includes(normalizedQuery) || normalizedQuery.includes(category)) {
-        results = [...results, ...items];
-      } else {
-        // Check individual headings and contexts
-        const matchingItems = items.filter(item => 
-          item.heading.toLowerCase().includes(normalizedQuery) ||
-          item.context.toLowerCase().includes(normalizedQuery) ||
-          normalizedQuery.split(' ').some(word => 
-            item.heading.toLowerCase().includes(word) || 
-            item.context.toLowerCase().includes(word)
-          )
-        );
-        results = [...results, ...matchingItems];
-      }
-    });
-    
-    // Remove duplicates and sort by relevance
-    const uniqueResults = results.filter((item, index, self) => 
-      index === self.findIndex(t => t.fileId === item.fileId && t.heading === item.heading)
-    );
-    
-    uniqueResults.sort((a, b) => b.relevanceScore - a.relevanceScore);
-    
-    setSemanticResults(uniqueResults.slice(0, 10)); // Limit to top 10 results
-    setIsSearching(false);
+    try {
+      // Call the real search API
+      const results = await searchHeadings(query, 10);
+      
+      // Transform API results to match our expected format
+      const transformedResults = results.map(result => ({
+        fileId: result.pdf_id,
+        heading: result.heading,
+        relevanceScore: result.relevance_score,
+        context: `Found in ${result.pdf_name}, Page ${result.page}`,
+        page: result.page,
+        pdfName: result.pdf_name,
+        level: result.level
+      }));
+      
+      setSemanticResults(transformedResults);
+    } catch (error) {
+      console.error('Semantic search failed:', error);
+      // Fallback to empty results on error
+      setSemanticResults([]);
+    } finally {
+      setIsSearching(false);
+    }
   }, []);
 
   // Debounced semantic search
@@ -101,9 +68,10 @@ const SemanticSearch = ({
     if (semanticResults.length === 0) return [];
     
     return semanticResults.map(result => {
+      // Find the actual file by matching PDF ID
       const file = filteredFiles.find(f => f.id === result.fileId) || {
         id: result.fileId,
-        name: `Document ${result.fileId}`,
+        name: result.pdfName || `Document ${result.fileId}`,
         size: Math.floor(Math.random() * 5000000) + 1000000,
         lastAccessed: Date.now() - Math.floor(Math.random() * 10000000),
         confidence: result.relevanceScore
@@ -113,6 +81,9 @@ const SemanticSearch = ({
         semanticHeading: result.heading,
         semanticContext: result.context,
         relevanceScore: result.relevanceScore,
+        page: result.page,
+        pdfName: result.pdfName,
+        level: result.level,
         isSemanticResult: true
       };
     });
@@ -153,7 +124,7 @@ const SemanticSearch = ({
           
           <input
             type="text"
-            placeholder="Search by content... (e.g., 'financial analysis', 'market trends')"
+            placeholder="Search document headings... (e.g., 'introduction', 'methodology', 'results')"
             value={semanticSearchTerm}
             onChange={(e) => setSemanticSearchTerm(e.target.value)}
             className="w-full pl-12 pr-16 py-3 border-2 border-[#DC2626]/30 bg-gradient-to-r from-[#DC2626]/5 to-[#B91C1C]/5 rounded-xl focus:ring-2 focus:ring-[#DC2626]/20 focus:border-[#DC2626] transition-all duration-300 text-sm font-medium placeholder-[#1A1A1A] placeholder-opacity-40 hover:bg-white"
@@ -190,7 +161,7 @@ const SemanticSearch = ({
               <div className="flex items-center space-x-2">
                 <Target className="w-4 h-4 text-[#DC2626]" />
                 <span className="text-[#1A1A1A] opacity-70">
-                  {isSearching ? 'Searching...' : `${semanticResults.length} semantic matches`}
+                  {isSearching ? 'Searching headings...' : `${semanticResults.length} heading matches`}
                 </span>
               </div>
               {semanticResults.length > 0 && (
@@ -246,6 +217,7 @@ const SemanticSearch = ({
                   >
                     {/* File Header */}
                     <div className="flex items-start space-x-4">
+                        <div>
                       <motion.div 
                         className={`p-3 rounded-xl transition-all duration-500 relative overflow-hidden ${
                           isSelected 
@@ -275,7 +247,12 @@ const SemanticSearch = ({
                           />
                         )}
                       </motion.div>
-                      
+                       <div className="flex items-center space-x-1 mt-2">
+                                  <div className="text-xs font-medium text-[#DC2626] bg-[#DC2626]/20 px-2 py-1 rounded-full">
+                                    {Math.round(file.relevanceScore * 100)}% 
+                                  </div>
+                                </div>
+                                </div>
                       <div className="flex-1 min-w-0">
                         {/* Semantic Context */}
                         <div className="space-y-2 mb-3">
@@ -289,23 +266,30 @@ const SemanticSearch = ({
                                   : 'bg-[#DC2626]/10 border-[#DC2626]/20 group-hover:bg-[#DC2626]/15 group-hover:border-[#DC2626]/30'
                               }`}
                             >
-                              <div className="text-sm font-bold text-[#DC2626] mb-1 flex items-center space-x-2">
-                                <Target className="w-3 h-3" />
-                                <span>Found: {file.semanticHeading}</span>
+                              <div className="text-sm font-bold text-[#DC2626] mb-1 flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                  <Target className="w-3 h-3" />
+                                  <span>Found: {file.semanticHeading}</span>
                                 </div>
-                             
+                               
+                              </div>
+                              {file.semanticContext && (
+                                <div className="text-xs text-[#1A1A1A] opacity-70 mt-1">
+                                  {file.semanticContext}
+                                </div>
+                              )}
                             </motion.div>
                           )}
                           
                           <div className="flex items-center justify-between space-x-2">
-                            <h4 className={`text-[15px] font-semibold truncate transition-colors duration-300 ${
+                            {/* <h4 className={`text-[15px] font-semibold truncate transition-colors duration-300 ${
                               isSelected ? 'text-[#DC2626] font-bold' : 'text-[#1A1A1A] group-hover:text-[#DC2626]'
                             }`}>
                               {file.name}
-                            </h4>
+                            </h4> */}
                             
                            {/* Click indicator */}
-                          <motion.div 
+                          {/* <motion.div 
                             className={`text-xs font-medium px-2 py-1 rounded-full transition-all duration-300 ${
                               isSelected 
                                 ? 'bg-[#DC2626]/20 text-[#DC2626] border border-[#DC2626]/30'
@@ -315,9 +299,11 @@ const SemanticSearch = ({
                             }`}
                             whileHover={{ scale: 1.05 }}
                           >
-                            {isSelected ? 'Viewing' : isClicking ? 'Opening...' : 'Click to open'}
-                          </motion.div>
+                            {isSelected ? 'Viewing' : isClicking ? 'Opening...' : 'Open'}
+                          </motion.div> */}
                           </div>
+                          
+                          
                         </div>
                         
                         
@@ -360,11 +346,11 @@ const SemanticSearch = ({
                 className="text-center py-12"
               >
                 <Brain className="w-16 h-16 mx-auto text-[#DC2626] opacity-30 mb-4" />
-                <h4 className="text-lg font-bold text-[#1A1A1A] mb-2">No semantic matches found</h4>
+                <h4 className="text-lg font-bold text-[#1A1A1A] mb-2">No heading matches found</h4>
                 <p className="text-sm text-[#1A1A1A] opacity-60 max-w-sm mx-auto leading-relaxed">
                   {semanticSearchTerm 
-                    ? `Try different keywords or phrases. Search for concepts like "financial analysis", "market research", or "technology trends".`
-                    : 'Enter a search term to find content within your documents using AI-powered semantic search.'
+                    ? `Try different keywords. Search for document sections like "introduction", "methodology", "results", or "conclusion".`
+                    : 'Enter a search term to find specific headings and sections within your documents using AI-powered search.'
                   }
                 </p>
               </motion.div>
@@ -412,15 +398,27 @@ const SemanticSearch = ({
                     >
                       <Brain className="w-6 h-6 mx-auto mb-2" />
                       
-                      {/* Relevance score indicator */}
-                      <motion.div 
-                        className={`text-xs font-bold ${
-                          isSelected ? 'text-white/90' : isClicking ? 'text-white animate-pulse' : 'text-white/80'
-                        }`}
-                        whileHover={{ scale: 1.1 }}
-                      >
-                        {isClicking ? 'Opening...' : `${Math.round(file.relevanceScore * 100)}%`}
-                      </motion.div>
+                      {/* Relevance score indicator with visual bar */}
+                      <div className="space-y-1">
+                        <motion.div 
+                          className={`text-xs font-bold ${
+                            isSelected ? 'text-white/90' : isClicking ? 'text-white animate-pulse' : 'text-white/80'
+                          }`}
+                          whileHover={{ scale: 1.1 }}
+                        >
+                          {isClicking ? 'Opening...' : `${Math.round(file.relevanceScore * 100)}%` }
+                        </motion.div>
+                        
+                        {/* Relevance bar */}
+                        <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full bg-white rounded-full"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${file.relevanceScore * 100}% ` }}
+                            transition={{ duration: 0.8, delay: index * 0.1 }}
+                          />
+                        </div>
+                      </div>
                       
                       {/* AI Indicator */}
                       <motion.div 
@@ -452,7 +450,16 @@ const SemanticSearch = ({
                       <div className="text-xs mb-2">
                         <span className="text-[#DC2626] font-medium">AI Match:</span> {file.semanticHeading}
                       </div>
-                     
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-xs">
+                          <span className="text-[#DC2626] font-medium">Relevance:</span> {Math.round(file.relevanceScore * 100)}% 
+                        </div>
+                        {file.page && (
+                          <div className="text-xs bg-[#DC2626]/20 text-[#DC2626] px-2 py-1 rounded">
+                            Page {file.page}
+                          </div>
+                        )}
+                      </div>
                       <div className="text-xs opacity-60">
                         {formatFileSize(file.size)} • {formatTimestamp(file.lastAccessed)}
                       </div>
