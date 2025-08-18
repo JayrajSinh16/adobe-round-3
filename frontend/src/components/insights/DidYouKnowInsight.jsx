@@ -7,7 +7,8 @@ import {
   BookOpen,
   Eye,
   Share2,
-  Bookmark
+  Bookmark,
+  Target
 } from 'lucide-react';
 
 const DidYouKnowInsight = ({ insight }) => {
@@ -39,9 +40,9 @@ const DidYouKnowInsight = ({ insight }) => {
             </div>
             <div className="flex-1">
               <h3 className="text-xl font-bold text-gray-900 mb-3">Interesting Discovery</h3>
-              <p className="text-gray-800 text-lg leading-relaxed font-medium">
-                {insight.insight}
-              </p>
+              <div className="text-gray-800 text-lg leading-relaxed font-medium whitespace-pre-wrap break-words">
+                {insight.content || insight.insight || 'No detailed content available'}
+              </div>
             </div>
           </div>
         </div>
@@ -57,7 +58,7 @@ const DidYouKnowInsight = ({ insight }) => {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Novelty Factor</span>
                 <span className="text-lg font-bold text-emerald-600">
-                  {insight.novelty || 'High'}
+                  {insight.knowledge_depth?.novelty_factor || insight.novelty || 'High'}
                 </span>
               </div>
               <div className="flex justify-between items-center">
@@ -66,7 +67,7 @@ const DidYouKnowInsight = ({ insight }) => {
                   {[...Array(5)].map((_, i) => (
                     <Sparkles 
                       key={i} 
-                      className={`w-4 h-4 ${i < 4 ? 'text-yellow-400' : 'text-gray-300'}`} 
+                      className={`w-4 h-4 ${i < (insight.knowledge_depth?.surprise_level || 4) ? 'text-yellow-400' : 'text-gray-300'}`} 
                     />
                   ))}
                 </div>
@@ -119,6 +120,23 @@ const DidYouKnowInsight = ({ insight }) => {
             </div>
           </div>
         </div>
+
+        {/* Why This Matters */}
+        {insight.why_this_matters && (
+          <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl p-6 border border-amber-200">
+            <div className="flex items-start space-x-4">
+              <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0 mt-1">
+                <Target className="w-5 h-5 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Why This Matters</h3>
+                <p className="text-gray-700 leading-relaxed">
+                  {insight.why_this_matters}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Share and Save Actions */}
         <div className="flex items-center justify-between bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-4">

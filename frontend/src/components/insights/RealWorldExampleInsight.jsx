@@ -42,9 +42,9 @@ const RealWorldExampleInsight = ({ insight }) => {
             </div>
             <div className="flex-1">
               <h3 className="text-xl font-bold text-gray-900 mb-3">Case Study Overview</h3>
-              <p className="text-gray-800 text-lg leading-relaxed font-medium">
+              <div className="text-gray-800 text-lg leading-relaxed font-medium whitespace-pre-wrap break-words">
                 {insight.insight}
-              </p>
+              </div>
             </div>
           </div>
         </div>

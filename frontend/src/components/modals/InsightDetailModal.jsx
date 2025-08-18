@@ -22,6 +22,9 @@ const premiumEasing = [0.25, 0.46, 0.45, 0.94];
 const InsightDetailModal = ({ insight, isOpen, onClose }) => {
   if (!insight) return null;
 
+  // Debug log to see what data we're receiving
+  console.log('InsightDetailModal received insight data:', insight);
+
   const getTypeInfo = (type) => {
     const typeMap = {
       takeaway: {

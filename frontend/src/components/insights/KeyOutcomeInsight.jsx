@@ -39,9 +39,9 @@ const KeyOutcomeInsight = ({ insight }) => {
             </div>
             <div className="flex-1">
               <h3 className="text-xl font-bold text-gray-900 mb-3">Strategic Outcome</h3>
-              <p className="text-gray-800 text-lg leading-relaxed font-medium">
-                {insight.insight}
-              </p>
+              <div className="text-gray-800 text-lg leading-relaxed font-medium whitespace-pre-wrap break-words">
+                {insight.content || insight.insight || 'No detailed content available'}
+              </div>
             </div>
           </div>
         </div>
@@ -68,7 +68,7 @@ const KeyOutcomeInsight = ({ insight }) => {
           
           <div className="bg-gray-50 rounded-xl p-4 text-center">
             <div className="text-2xl font-black text-blue-600 mb-2">
-              {insight.documents?.length || 1}
+              {insight.source_documents?.length || 1}
             </div>
             <div className="text-sm font-bold text-gray-600 uppercase tracking-wide">
               Sources
@@ -77,7 +77,7 @@ const KeyOutcomeInsight = ({ insight }) => {
         </div>
 
         {/* Actionable Items */}
-        {insight.actionable && (
+        {(insight.immediate_action_required || insight.actionable) && (
           <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-6 border border-yellow-200">
             <div className="flex items-start space-x-4">
               <div className="p-2 bg-yellow-100 rounded-lg flex-shrink-0 mt-1">
@@ -85,47 +85,16 @@ const KeyOutcomeInsight = ({ insight }) => {
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-gray-900 mb-2">Immediate Action Required</h3>
-                <p className="text-gray-700 leading-relaxed">
-                  {insight.actionable}
-                </p>
+                <div className="text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
+                  {insight.immediate_action_required || insight.actionable}
+                </div>
               </div>
             </div>
           </div>
         )}
 
         {/* Strategic Implications */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-blue-50 rounded-xl p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center space-x-2">
-              <TrendingUp className="w-5 h-5 text-blue-600" />
-              <span>Business Impact</span>
-            </h3>
-            <p className="text-gray-700 leading-relaxed text-sm">
-              This key outcome represents a critical strategic insight that directly impacts business operations and decision-making processes. Implementation should be prioritized based on organizational readiness.
-            </p>
-          </div>
 
-          <div className="bg-green-50 rounded-xl p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center space-x-2">
-              <CheckCircle2 className="w-5 h-5 text-green-600" />
-              <span>Next Steps</span>
-            </h3>
-            <ul className="text-gray-700 space-y-2 text-sm">
-              <li className="flex items-center space-x-2">
-                <ArrowRight className="w-4 h-4 text-green-600" />
-                <span>Validate findings with stakeholders</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <ArrowRight className="w-4 h-4 text-green-600" />
-                <span>Develop implementation timeline</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <ArrowRight className="w-4 h-4 text-green-600" />
-                <span>Monitor progress and outcomes</span>
-              </li>
-            </ul>
-          </div>
-        </div>
       </div>
     </motion.section>
   );

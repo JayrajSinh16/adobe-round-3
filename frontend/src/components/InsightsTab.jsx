@@ -58,6 +58,7 @@ const InsightsTab = ({ onInsightClick, insightsData, insightsError }) => {
           console.log(`Rendering insight ${index}:`, insight);
           const Icon = iconForType(insight.type);
           const style = styleForType(insight.type);
+          console.log("ye hai>>>",insight)
           const source = Array.isArray(insight.source_documents) && insight.source_documents.length > 0
             ? `${insight.source_documents[0].pdf_name} • Page ${insight.source_documents[0].page}`
             : 'Multiple sources';

@@ -12,6 +12,14 @@ async def upload_document(file: UploadFile = File(...)):
     if not file.filename.endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
     
+    # Check file size (50MB limit)
+    content = await file.read()
+    if len(content) > 50 * 1024 * 1024:  # 50MB in bytes
+        raise HTTPException(status_code=400, detail="File size must be less than 50MB")
+    
+    # Reset file pointer after reading
+    await file.seek(0)
+    
     try:
         document = await document_service.upload_document(file)
         return document
@@ -21,13 +29,24 @@ async def upload_document(file: UploadFile = File(...)):
 @router.post("/bulk-upload", response_model=List[DocumentInfo])
 async def bulk_upload_documents(files: List[UploadFile] = File(...)):
     """Upload multiple PDF documents"""
-    # Validate all files are PDFs
+    # Validate all files are PDFs and check file sizes
     for file in files:
         if not file.filename.endswith('.pdf'):
             raise HTTPException(
                 status_code=400, 
                 detail=f"File {file.filename} is not a PDF"
             )
+        
+        # Check file size (50MB limit)
+        content = await file.read()
+        if len(content) > 50 * 1024 * 1024:  # 50MB in bytes
+            raise HTTPException(
+                status_code=400, 
+                detail=f"File {file.filename} exceeds 50MB size limit"
+            )
+        
+        # Reset file pointer after reading
+        await file.seek(0)
     
     try:
         documents = await document_service.bulk_upload_documents(files)
