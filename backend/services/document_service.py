@@ -3,6 +3,7 @@ import json
 import uuid
 from typing import List, Dict, Any, Optional
 from datetime import datetime
+from pathlib import Path
 import aiofiles
 from fastapi import UploadFile
 from config import settings
@@ -10,35 +11,107 @@ from utils import extract_pdf_info, generate_pdf_outline
 from models import DocumentInfo
 
 class DocumentService:
-    INDEX_FILE = "storage/documents_index.json"
+    INDEX_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "storage", "documents_index.json")
 
     def __init__(self):
         self.documents: Dict[str, DocumentInfo] = {}
         self._id_filename_map: Dict[str, str] = {}
-        self._load_index()
+        self._rebuild_index_from_files()  # Always rebuild from actual files
         self._load_existing_documents()
 
-    def _load_index(self):
+    def _rebuild_index_from_files(self):
+        """Rebuild index completely from actual files on disk, ignoring any existing index"""
+        print("🔄 Rebuilding index from actual files...")
+        
+        # Clear any existing data
+        self._id_filename_map.clear()
+        
+        # Scan actual PDF files
+        if not os.path.exists(settings.upload_folder):
+            print("📁 Upload folder doesn't exist, starting with empty index")
+            self._save_index()
+            return
+        
+        actual_files = []
+        for file_path in Path(settings.upload_folder).glob("*.pdf"):
+            actual_files.append(file_path.name)
+        
+        print(f"📁 Found {len(actual_files)} actual PDF files")
+        
+        # Try to load existing index to preserve IDs for existing files
+        existing_index = {}
         if os.path.exists(self.INDEX_FILE):
             try:
                 with open(self.INDEX_FILE, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                if isinstance(data, list):  # backwards compatibility
+                if isinstance(data, dict):
+                    existing_index = data
+                elif isinstance(data, list):
                     for entry in data:
                         if isinstance(entry, dict) and 'id' in entry and 'filename' in entry:
-                            self._id_filename_map[entry['id']] = entry['filename']
-                elif isinstance(data, dict):
-                    self._id_filename_map.update(data)
+                            existing_index[entry['id']] = entry['filename']
             except Exception as e:
-                print(f"Failed to load index: {e}")
+                print(f"⚠️ Could not read existing index: {e}")
+        
+        # Build clean index - one entry per actual file
+        file_to_id = {}
+        for doc_id, filename in existing_index.items():
+            if filename in actual_files and filename not in file_to_id:
+                file_to_id[filename] = doc_id
+                self._id_filename_map[doc_id] = filename
+        
+        # Generate new IDs for files that don't have them
+        for filename in actual_files:
+            if filename not in file_to_id:
+                new_id = str(uuid.uuid4())
+                self._id_filename_map[new_id] = filename
+                print(f"🆕 Generated new ID for {filename}: {new_id[:8]}...")
+        
+        print(f"✅ Rebuilt clean index with {len(self._id_filename_map)} entries")
+        
+        # Save the clean index
+        self._save_index()
 
     def _save_index(self):
+        """Save index with validation and atomic write"""
         try:
+            # Validate entries before saving
+            valid_entries = {}
+            cleaned_count = 0
+            
+            for doc_id, filename in self._id_filename_map.items():
+                pdf_path = os.path.join(settings.upload_folder, filename)
+                if os.path.exists(pdf_path):
+                    valid_entries[doc_id] = filename
+                else:
+                    cleaned_count += 1
+                    print(f"🗑️ Skipping invalid entry during save: {doc_id[:8]}... -> {filename}")
+            
+            if cleaned_count > 0:
+                print(f"🧹 Cleaned {cleaned_count} invalid entries during save")
+                self._id_filename_map = valid_entries
+            
+            # Atomic write
             os.makedirs(os.path.dirname(self.INDEX_FILE), exist_ok=True)
-            with open(self.INDEX_FILE, 'w', encoding='utf-8') as f:
+            temp_file = self.INDEX_FILE + ".tmp"
+            
+            with open(temp_file, 'w', encoding='utf-8') as f:
                 json.dump(self._id_filename_map, f, indent=2)
+            
+            # Atomic rename
+            if os.path.exists(self.INDEX_FILE):
+                os.replace(temp_file, self.INDEX_FILE)
+            else:
+                os.rename(temp_file, self.INDEX_FILE)
+                
+            print(f"💾 Saved clean index with {len(self._id_filename_map)} entries")
+            
         except Exception as e:
             print(f"Failed to save index: {e}")
+            # Clean up temp file if it exists
+            temp_file = self.INDEX_FILE + ".tmp"
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
     
     def _load_existing_documents(self):
         """Load existing documents from storage using index mapping"""
@@ -77,38 +150,47 @@ class DocumentService:
             counter += 1
         return final
 
-    def _check_duplicate_document(self, filename: str) -> Optional[DocumentInfo]:
-        """
-        Check if document with same name already exists with all required files
-        Returns existing DocumentInfo if duplicate found, None otherwise
-        """
-        # Check if document already exists by filename
-        existing_doc = self.get_document_by_filename(filename)
-        if not existing_doc:
-            return None
-        
-        # Verify all required files exist
-        pdf_exists = os.path.exists(existing_doc.filepath)
-        if not pdf_exists:
-            print(f"⚠️ PDF file missing for {filename}, allowing re-upload")
-            return None
-        
-        # Check if outline exists
+    def _remove_suffix(self, filename: str) -> str:
+        """Remove _1, _2, etc. suffixes from filename for duplicate checking"""
+        import re
         base_name = os.path.splitext(filename)[0]
-        outline_path = os.path.join(settings.outline_folder, f"{base_name}.json")
-        outline_exists = os.path.exists(outline_path)
-        if not outline_exists:
-            print(f"⚠️ Outline missing for {filename}, allowing re-upload")
-            return None
+        # Remove trailing _1, _2, _3, etc.
+        base_name = re.sub(r'_\d+$', '', base_name)
+        return base_name
+
+    def _check_duplicate_document(self, filename: str) -> Optional[DocumentInfo]:
+        """Check if document is duplicate based on base name (ignoring _1, _2 suffixes)"""
+        target_base = self._remove_suffix(filename)
         
-        # Check if properly mapped in index
-        is_mapped = existing_doc.id in self._id_filename_map
-        if not is_mapped:
-            print(f"⚠️ Document not properly indexed for {filename}, allowing re-upload")
-            return None
+        for doc in self.documents.values():
+            existing_base = self._remove_suffix(doc.filename)
+            if existing_base == target_base:
+                print(f"🔍 Found similar document: {doc.filename} matches {filename}")
+                
+                # Check if all files exist
+                pdf_exists = os.path.exists(doc.filepath)
+                if not pdf_exists:
+                    print(f"⚠️ PDF missing for {filename}, allowing re-upload")
+                    return None
+                
+                # Check if outline exists
+                base_name = os.path.splitext(doc.filename)[0]
+                outline_path = os.path.join(settings.outline_folder, f"{base_name}.json")
+                outline_exists = os.path.exists(outline_path)
+                if not outline_exists:
+                    print(f"⚠️ Outline missing for {filename}, allowing re-upload")
+                    return None
+                
+                # Check if properly mapped in index
+                is_mapped = doc.id in self._id_filename_map
+                if not is_mapped:
+                    print(f"⚠️ Document not properly indexed for {filename}, allowing re-upload")
+                    return None
+                
+                print(f"✅ Duplicate detected: {filename} already exists as {doc.filename} with all files")
+                return doc
         
-        print(f"🔍 Duplicate detected: {filename} already exists with all files")
-        return existing_doc
+        return None
 
     async def upload_document(self, file: UploadFile) -> DocumentInfo:
         """Upload a new document keeping original filename and outline base.
@@ -135,9 +217,6 @@ class DocumentService:
         os.makedirs(settings.outline_folder, exist_ok=True)
 
         doc_id = str(uuid.uuid4())
-        
-        # Ensure unique filename (in case of race conditions)
-        original_name = self._ensure_unique_filename(original_name)
         filepath = os.path.join(settings.upload_folder, original_name)
 
         # Save uploaded file
@@ -175,8 +254,8 @@ class DocumentService:
         # Persist mapping index
         self._id_filename_map[doc_id] = original_name
         self._save_index()
-        print(f"📝 Updated document index")
 
+        # Register in runtime instance
         self.documents[doc_id] = doc_info
 
         # Refresh search / connection indexes (best-effort)
@@ -199,6 +278,7 @@ class DocumentService:
         """Upload multiple documents with duplicate checking"""
         documents = []
         print(f"📦 Bulk upload started: {len(files)} files")
+        print(f"📊 Index state before bulk upload: {len(self._id_filename_map)} entries")
         
         for i, file in enumerate(files, 1):
             print(f"📄 Processing file {i}/{len(files)}: {file.filename}")
@@ -210,6 +290,8 @@ class DocumentService:
                 print(f"❌ File {i} failed ({file.filename}): {e}")
                 # Continue with other files instead of failing entire batch
                 continue
+        
+        print(f"📊 Index state after bulk upload: {len(self._id_filename_map)} entries")
         
         # After bulk upload ensure index built once (local import to avoid circular)
         try:
@@ -230,39 +312,43 @@ class DocumentService:
         """Get all documents"""
         return list(self.documents.values())
     
-    def get_document_by_filename(self, filename: str) -> Optional[DocumentInfo]:
-        """Get document by filename"""
-        for doc in self.documents.values():
-            if doc.filename == filename:
-                return doc
-        return None
-    
     def delete_document(self, doc_id: str) -> bool:
-        """Delete a document"""
-        if doc_id in self.documents:
-            doc = self.documents[doc_id]
-            
-            # Remove files
-            try:
-                if os.path.exists(doc.filepath):
-                    os.remove(doc.filepath)
-                if doc.outline_path and os.path.exists(doc.outline_path):
-                    os.remove(doc.outline_path)
-                
-                del self.documents[doc_id]
-                return True
-            except Exception as e:
-                print(f"Error deleting document: {str(e)}")
-                return False
-        return False
+        """Delete a document and its associated files"""
+        if doc_id not in self.documents:
+            return False
+        
+        doc = self.documents[doc_id]
+        
+        # Delete PDF file
+        if os.path.exists(doc.filepath):
+            os.remove(doc.filepath)
+        
+        # Delete outline file
+        if doc.outline_path and os.path.exists(doc.outline_path):
+            os.remove(doc.outline_path)
+        
+        # Remove from index
+        if doc_id in self._id_filename_map:
+            del self._id_filename_map[doc_id]
+            self._save_index()
+        
+        # Remove from runtime
+        del self.documents[doc_id]
+        
+        return True
     
     def get_document_outline(self, doc_id: str) -> Optional[Dict[str, Any]]:
-        """Get document outline"""
-        doc = self.documents.get(doc_id)
-        if doc and doc.outline_path and os.path.exists(doc.outline_path):
-            with open(doc.outline_path, 'r') as f:
+        """Get document outline by ID"""
+        doc = self.get_document(doc_id)
+        if not doc or not doc.outline_path or not os.path.exists(doc.outline_path):
+            return None
+        
+        try:
+            with open(doc.outline_path, 'r', encoding='utf-8') as f:
                 return json.load(f)
-        return None
+        except Exception as e:
+            print(f"Failed to read outline for {doc_id}: {e}")
+            return None
 
 # Create singleton instance
 document_service = DocumentService()
