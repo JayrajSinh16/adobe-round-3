@@ -48,7 +48,7 @@ const DidYouKnowInsight = ({ insight }) => {
         </div>
 
         {/* Fun Fact Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl p-6">
             <div className="flex items-center space-x-3 mb-4">
               <Brain className="w-6 h-6 text-emerald-600" />
@@ -95,7 +95,7 @@ const DidYouKnowInsight = ({ insight }) => {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Insight Categories */}
         <div className="bg-gray-50 rounded-xl p-6">
@@ -107,15 +107,13 @@ const DidYouKnowInsight = ({ insight }) => {
             <div className="space-y-2">
               <h4 className="font-semibold text-emerald-600 text-sm">Learning Value</h4>
               <p className="text-gray-700 text-sm leading-relaxed">
-                This discovery enhances your understanding of the subject matter and provides 
-                valuable context that might not be immediately obvious from a surface reading.
+                {insight.learning_value || 'This discovery enhances your understanding of the subject matter and provides valuable context that might not be immediately obvious from a surface reading.'}
               </p>
             </div>
             <div className="space-y-2">
               <h4 className="font-semibold text-blue-600 text-sm">Practical Application</h4>
               <p className="text-gray-700 text-sm leading-relaxed">
-                Consider how this insight might influence your approach to related topics or 
-                decisions. Sometimes unexpected knowledge leads to innovative solutions.
+                {insight.practical_application || 'Consider how this insight might influence your approach to related topics or decisions. Sometimes unexpected knowledge leads to innovative solutions.'}
               </p>
             </div>
           </div>

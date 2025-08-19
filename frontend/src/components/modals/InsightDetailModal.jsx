@@ -27,57 +27,189 @@ const InsightDetailModal = ({ insight, isOpen, onClose }) => {
 
   const getTypeInfo = (type) => {
     const typeMap = {
+      // Key Outcome variations
       takeaway: {
         label: 'Key Outcome',
         description: 'Strategic insight that drives competitive advantage',
         color: '#DC2626',
-        bgGradient: 'from-red-50 via-red-25 to-white',
+        bgGradient: 'from-red-50 via-red-100 to-white',
         borderColor: 'border-red-200',
         icon: Target,
         component: 'KeyOutcome'
       },
+      KeyOutcome: {
+        label: 'Key Outcome',
+        description: 'Strategic insight that drives competitive advantage',
+        color: '#DC2626',
+        bgGradient: 'from-red-50 via-red-100 to-white',
+        borderColor: 'border-red-200',
+        icon: Target,
+        component: 'KeyOutcome'
+      },
+      outcome: {
+        label: 'Key Outcome',
+        description: 'Strategic insight that drives competitive advantage',
+        color: '#DC2626',
+        bgGradient: 'from-red-50 via-red-100 to-white',
+        borderColor: 'border-red-200',
+        icon: Target,
+        component: 'KeyOutcome'
+      },
+      
+      // Did You Know variations
       fact: {
         label: 'Did You Know?',
         description: 'Fascinating discoveries and surprising insights',
         color: '#059669',
-        bgGradient: 'from-emerald-50 via-emerald-25 to-white',
+        bgGradient: 'from-emerald-50 via-emerald-100 to-white',
         borderColor: 'border-emerald-200',
         icon: Lightbulb,
         component: 'DidYouKnow'
       },
+      DidYouKnow: {
+        label: 'Did You Know?',
+        description: 'Fascinating discoveries and surprising insights',
+        color: '#059669',
+        bgGradient: 'from-emerald-50 via-emerald-100 to-white',
+        borderColor: 'border-emerald-200',
+        icon: Lightbulb,
+        component: 'DidYouKnow'
+      },
+      insight: {
+        label: 'Did You Know?',
+        description: 'Fascinating discoveries and surprising insights',
+        color: '#059669',
+        bgGradient: 'from-emerald-50 via-emerald-100 to-white',
+        borderColor: 'border-emerald-200',
+        icon: Lightbulb,
+        component: 'DidYouKnow'
+      },
+      
+      // Contradiction variations
       contradiction: {
         label: 'Contradiction Found',
         description: 'Conflicting information requiring immediate attention',
         color: '#EA580C',
-        bgGradient: 'from-orange-50 via-orange-25 to-white',
+        bgGradient: 'from-orange-50 via-orange-100 to-white',
         borderColor: 'border-orange-200',
         icon: AlertTriangle,
         component: 'ContradictionFound'
       },
+      ContradictionFound: {
+        label: 'Contradiction Found',
+        description: 'Conflicting information requiring immediate attention',
+        color: '#EA580C',
+        bgGradient: 'from-orange-50 via-orange-100 to-white',
+        borderColor: 'border-orange-200',
+        icon: AlertTriangle,
+        component: 'ContradictionFound'
+      },
+      conflict: {
+        label: 'Contradiction Found',
+        description: 'Conflicting information requiring immediate attention',
+        color: '#EA580C',
+        bgGradient: 'from-orange-50 via-orange-100 to-white',
+        borderColor: 'border-orange-200',
+        icon: AlertTriangle,
+        component: 'ContradictionFound'
+      },
+      
+      // Real World Example variations
       example: {
         label: 'Real-World Example',
         description: 'Real-world examples and implementation scenarios',
         color: '#0891B2',
-        bgGradient: 'from-cyan-50 via-cyan-25 to-white',
+        bgGradient: 'from-cyan-50 via-cyan-100 to-white',
         borderColor: 'border-cyan-200',
         icon: CheckCircle2,
         component: 'RealWorldExample'
       },
+      RealWorldExample: {
+        label: 'Real-World Example',
+        description: 'Real-world examples and implementation scenarios',
+        color: '#0891B2',
+        bgGradient: 'from-cyan-50 via-cyan-100 to-white',
+        borderColor: 'border-cyan-200',
+        icon: CheckCircle2,
+        component: 'RealWorldExample'
+      },
+      
+      // Cross Document Inspiration variations
       inspiration: {
         label: 'Cross-Document Inspiration',
         description: 'Creative connections spanning multiple sources',
         color: '#7C3AED',
-        bgGradient: 'from-purple-50 via-purple-25 to-white',
+        bgGradient: 'from-purple-50 via-purple-100 to-white',
+        borderColor: 'border-purple-200',
+        icon: Brain,
+        component: 'CrossDocumentInspiration'
+      },
+      CrossDocumentInspiration: {
+        label: 'Cross-Document Inspiration',
+        description: 'Creative connections spanning multiple sources',
+        color: '#7C3AED',
+        bgGradient: 'from-purple-50 via-purple-100 to-white',
         borderColor: 'border-purple-200',
         icon: Brain,
         component: 'CrossDocumentInspiration'
       }
     };
-    return typeMap[type] || typeMap.takeaway;
+
+    // Enhanced fallback logic with better type detection
+    const normalizedType = type?.toLowerCase?.() || 'unknown';
+    console.log('Looking up insight type:', type, 'normalized:', normalizedType);
+    
+    // Try exact match first
+    if (typeMap[type]) {
+      console.log('Found exact match for type:', type);
+      return typeMap[type];
+    }
+    
+    // Try normalized lowercase match
+    if (typeMap[normalizedType]) {
+      console.log('Found normalized match for type:', normalizedType);
+      return typeMap[normalizedType];
+    }
+    
+    // Try partial matches for common patterns
+    if (normalizedType.includes('outcome') || normalizedType.includes('takeaway')) {
+      console.log('Using outcome pattern for type:', type);
+      return typeMap.KeyOutcome;
+    }
+    
+    if (normalizedType.includes('know') || normalizedType.includes('fact') || normalizedType.includes('insight')) {
+      console.log('Using DidYouKnow pattern for type:', type);
+      return typeMap.DidYouKnow;
+    }
+    
+    if (normalizedType.includes('contradiction') || normalizedType.includes('conflict')) {
+      console.log('Using contradiction pattern for type:', type);
+      return typeMap.ContradictionFound;
+    }
+    
+    if (normalizedType.includes('example')) {
+      console.log('Using example pattern for type:', type);
+      return typeMap.RealWorldExample;
+    }
+    
+    if (normalizedType.includes('inspiration') || normalizedType.includes('cross')) {
+      console.log('Using inspiration pattern for type:', type);
+      return typeMap.CrossDocumentInspiration;
+    }
+    
+    // Final fallback - return a default with warning
+    console.warn('No match found for insight type:', type, '- using default KeyOutcome');
+    return typeMap.KeyOutcome;
   };
 
   const typeInfo = getTypeInfo(insight.type);
   const TypeIcon = typeInfo.icon;
+  
+  // Enhanced debugging
+  console.log('Insight type:', insight.type);
+  console.log('Selected typeInfo:', typeInfo);
+  console.log('Background gradient class:', typeInfo.bgGradient);
+  console.log('Border color class:', typeInfo.borderColor);
 
   // Render the appropriate specialized component
   const renderInsightComponent = () => {

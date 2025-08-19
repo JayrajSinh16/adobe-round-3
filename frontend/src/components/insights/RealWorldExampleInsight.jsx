@@ -43,54 +43,14 @@ const RealWorldExampleInsight = ({ insight }) => {
             <div className="flex-1">
               <h3 className="text-xl font-bold text-gray-900 mb-3">Case Study Overview</h3>
               <div className="text-gray-800 text-lg leading-relaxed font-medium whitespace-pre-wrap break-words">
-                {insight.insight}
+                {insight.content}
               </div>
             </div>
           </div>
         </div>
 
         {/* Key Details Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-blue-50 rounded-xl p-4">
-            <div className="flex items-center space-x-2 mb-2">
-              <Building className="w-5 h-5 text-blue-600" />
-              <h4 className="font-bold text-gray-900 text-sm">Organization</h4>
-            </div>
-            <p className="text-blue-700 font-medium text-sm">
-              {insight.organization || 'Fortune 500 Company'}
-            </p>
-          </div>
-
-          <div className="bg-green-50 rounded-xl p-4">
-            <div className="flex items-center space-x-2 mb-2">
-              <Users className="w-5 h-5 text-green-600" />
-              <h4 className="font-bold text-gray-900 text-sm">Scale</h4>
-            </div>
-            <p className="text-green-700 font-medium text-sm">
-              {insight.scale || 'Enterprise Level'}
-            </p>
-          </div>
-
-          <div className="bg-purple-50 rounded-xl p-4">
-            <div className="flex items-center space-x-2 mb-2">
-              <Calendar className="w-5 h-5 text-purple-600" />
-              <h4 className="font-bold text-gray-900 text-sm">Timeline</h4>
-            </div>
-            <p className="text-purple-700 font-medium text-sm">
-              {insight.timeline || '6-12 months'}
-            </p>
-          </div>
-
-          <div className="bg-orange-50 rounded-xl p-4">
-            <div className="flex items-center space-x-2 mb-2">
-              <MapPin className="w-5 h-5 text-orange-600" />
-              <h4 className="font-bold text-gray-900 text-sm">Location</h4>
-            </div>
-            <p className="text-orange-700 font-medium text-sm">
-              {insight.location || 'Global'}
-            </p>
-          </div>
-        </div>
+      
 
         {/* Implementation Details */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -123,36 +83,36 @@ const RealWorldExampleInsight = ({ insight }) => {
           </div>
 
           {/* Results */}
-          <div className="bg-green-50 rounded-xl p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2">
-              <TrendingUp className="w-5 h-5 text-green-600" />
-              <span>Achieved Results</span>
+           <div className="bg-gray-50 rounded-xl p-6">
+            <h3 className="text-lg font-bold text-orange-600 mb-4 flex items-center space-x-2">
+              
+              <span>Key Challenges</span>
             </h3>
             <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 text-sm">Efficiency Gain</span>
-                <span className="font-bold text-green-600">
-                  {insight.efficiency || '+35%'}
-                </span>
+              <div className="flex items-start space-x-3">
+                <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                <p className="text-gray-700 text-sm">
+                  {insight.challenge1 || "Phased implementation starting with pilot program"}
+                </p>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 text-sm">Cost Reduction</span>
-                <span className="font-bold text-green-600">
-                  {insight.cost_reduction || '25%'}
-                </span>
+              <div className="flex items-start space-x-3">
+                <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                <p className="text-gray-700 text-sm">
+                  {insight.challenge2 || "Cross-functional team collaboration"}
+                </p>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 text-sm">ROI Timeline</span>
-                <span className="font-bold text-green-600">
-                  {insight.roi_timeline || '8 months'}
-                </span>
+              <div className="flex items-start space-x-3">
+                <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                <p className="text-gray-700 text-sm">
+                  {insight.challenge3 || "Continuous monitoring and optimization"}
+                </p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Key Success Factors */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
+        {/* <div className="bg-white border border-gray-200 rounded-xl p-6">
           <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2">
             <Award className="w-5 h-5 text-yellow-600" />
             <span>Critical Success Factors</span>
@@ -207,7 +167,7 @@ const RealWorldExampleInsight = ({ insight }) => {
               </ul>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Applicability Assessment */}
         <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-6 border border-blue-200">
