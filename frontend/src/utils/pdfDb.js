@@ -68,7 +68,7 @@ export async function getActivePDFs() {
   });
 }
 
-export async function upsertPDFs(records, ttlMs = 30 * 60 * 1000) {
+export async function upsertPDFs(records, ttlMs = 60 * 60 * 1000) {
   // records: array of { id, name, size, type, uploadedAt, blob }
   if (!Array.isArray(records) || records.length === 0) return { added: 0, kept: 0 };
   let db;
@@ -80,7 +80,7 @@ export async function upsertPDFs(records, ttlMs = 30 * 60 * 1000) {
   }
 
   const now = Date.now();
-  const expiry = now + (typeof ttlMs === 'number' ? ttlMs : 30 * 60 * 1000);
+  const expiry = now + (typeof ttlMs === 'number' ? ttlMs : 60 * 60 * 1000);
   // Dedup against existing by name|size
   const existing = await new Promise((resolve) => {
     const store = tx(db, 'readonly');
@@ -131,7 +131,7 @@ export async function upsertPDFs(records, ttlMs = 30 * 60 * 1000) {
   return { added, kept };
 }
 
-export async function replaceAllPDFs(records, ttlMs = 30 * 60 * 1000) {
+export async function replaceAllPDFs(records, ttlMs = 60 * 60 * 1000) {
   // Clears and writes the provided records
   let db;
   try { db = await openDB(); } catch (e) { console.warn('IndexedDB unavailable:', e); return { added: 0 }; }

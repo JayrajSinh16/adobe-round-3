@@ -10,11 +10,6 @@ const CenterPanel = ({
   onActivateTab,
   onCloseTab,
   currentPage,
-  pdfZoom,
-  pdfLoading,
-  pdfViewerRef,
-  handlePDFZoom,
-  handlePageNavigation,
   setSelectedText,
   setSelectedTextContext,
   setRightPanelVisible,
@@ -134,67 +129,6 @@ const CenterPanel = ({
           >
             {selectedFile ? selectedFile.name : 'Select a document to begin'}
           </motion.h2>
-          
-          {selectedFile && (
-            <motion.div 
-              className="flex items-center space-x-4 text-sm text-[#1A1A1A] opacity-60 font-medium"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              <span>Page {currentPage} of {selectedFile.pages}</span>
-              <span>•</span>
-              <span>{Math.round(pdfZoom * 100)}% zoom</span>
-            </motion.div>
-          )}
-        </div>
-        
-        {/* PDF Controls */}
-        <div className="flex items-center space-x-1">
-          <motion.button 
-            onClick={() => onZoom('out')}
-            className="p-3 rounded-xl hover:bg-[#E5E7EB]/50 transition-all duration-300 disabled:opacity-50"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            disabled={pdfZoom <= 0.5}
-            aria-label="Zoom out"
-          >
-            <ZoomOut className="w-5 h-5" />
-          </motion.button>
-          
-          <motion.button 
-            onClick={() => onZoom('in')}
-            className="p-3 rounded-xl hover:bg-[#E5E7EB]/50 transition-all duration-300 disabled:opacity-50"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            disabled={pdfZoom >= 3.0}
-            aria-label="Zoom in"
-          >
-            <ZoomIn className="w-5 h-5" />
-          </motion.button>
-          
-          <div className="w-px h-6 bg-[#E5E7EB] mx-2"></div>
-          
-          <motion.button 
-            onClick={() => onNavigatePage('prev')}
-            className="p-3 rounded-xl hover:bg-[#E5E7EB]/50 transition-all duration-300 disabled:opacity-50"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            disabled={currentPage <= 1}
-            aria-label="Previous page"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </motion.button>
-          
-          <motion.button 
-            onClick={() => onNavigatePage('next')}
-            className="p-3 rounded-xl hover:bg-[#E5E7EB]/50 transition-all duration-300 disabled:opacity-50"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            disabled={!selectedFile || currentPage >= selectedFile.pages}
-            aria-label="Next page"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </motion.button>
         </div>
       </div>
 

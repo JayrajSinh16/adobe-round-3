@@ -257,7 +257,7 @@ const PDFAnalysisWorkspace = () => {
 
   // Insights cache helpers (localStorage)
   const INSIGHTS_CACHE_KEY = 'insightsCacheV3';
-  const INSIGHTS_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes TTL
+  const INSIGHTS_CACHE_TTL_MS = 60 * 60 * 1000; // 60 minutes TTL
   const MAX_CACHE_ENTRIES = 50; // Limit cache size
   
   const getInsightsCache = () => {
