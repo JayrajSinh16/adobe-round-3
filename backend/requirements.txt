@@ -1,18 +1,37 @@
+# Adobe Sample Repository Compatible Dependencies
+# LLM and AI Libraries (from Adobe sample repo)
+langchain==0.3.27
+langchain-openai==0.3.29
+langchain-google-genai==2.0.10
+langchain-community==0.3.27
+google-generativeai==0.8.5
+
+# TTS Libraries (from Adobe sample repo)
+google-cloud-texttospeech==2.27.0
+requests>=2.25.0
+pydub>=0.25.0
+
+# FastAPI and Web Framework
 fastapi
 uvicorn[standard]
 pydantic
 pydantic-settings
 python-multipart
 aiofiles
+
+# PDF Processing
 PyMuPDF
 numpy
-pydub
-pyttsx3
+
+# Search and ML Libraries
 scikit-learn
-google-generativeai
-google-cloud-texttospeech
+
+# Audio Processing (additional)
 azure-cognitiveservices-speech
+
+# OpenAI (additional)
 openai
+
+# Utilities
 python-dotenv
 httpx
-pydub

@@ -1,0 +1,42 @@
+services:
+  adobe-pdf-platform:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      # Backend Environment Variables
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-AIzaSyBY1oQ_g16S354tKEf7c_-kq6UBJGkFcgU}
+      - GEMINI_MODEL=gemini-1.5-flash
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - HOST=0.0.0.0
+      - PORT=8080
+      - STORAGE_PATH=./storage
+      - UPLOAD_PATH=./storage/uploads
+      - OUTLINE_PATH=./storage/outlines
+      - DEFAULT_INSIGHT_TYPES=key_takeaways,contradictions,examples,cross_references,did_you_know
+      - MAX_TOKENS_PER_INSIGHT=200
+      - TEMPERATURE=0.7
+      - LLM_REQUEST_TIMEOUT=60
+      - ENABLE_TIMING_MEASUREMENTS=true
+      - LOG_LEVEL=INFO
+      - TTS_PROVIDER=azure
+      - AZURE_TTS_KEY=${AZURE_TTS_KEY:-2eXWrAviI9MwS5t5v5Dfw9iBttc6jgsCi9EA3GUhYOSi5NechwcFJQQJ99BHACGhslBXJ3w3AAAEACOGaxX0}
+      - AZURE_TTS_ENDPOINT=https://mytts-resources.cognitiveservices.azure.com/
+      - AZURE_TTS_REGION=centralindia
+    volumes:
+      - ./storage:/app/backend/storage
+      - ./sample_pdf:/app/backend/sample_pdf
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  storage:
+    driver: local
