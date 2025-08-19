@@ -7,6 +7,21 @@ from services.document_service import document_service
 from models import Insight, InsightResponse
 
 class InsightsService:
+    """
+    Insights Service using Multi-Call LLM Strategy
+    
+    This service now uses a redesigned approach with multiple focused LLM calls:
+    - Batch 1: Key Takeaways & Practical Examples (practical_analysis focus)
+    - Batch 2: Cross-References & Did You Know (connections_discovery focus) 
+    - Batch 3: Contradictions (conflict_analysis focus)
+    
+    Each call:
+    - Uses specialized system prompts for the specific insight types
+    - Requests 2-3 line concise responses
+    - Asks for specific document names and page numbers
+    - Provides full document library context
+    - Focuses on quality over quantity with smaller token limits per call
+    """
     def __init__(self):
         self.cached_insights = {}
     
@@ -92,7 +107,7 @@ class InsightsService:
 
         print(f"DEBUG: Analyzing across {len(unique_docs)} documents: {list(unique_docs)}")
 
-        # Batch-generate all requested insight types with enhanced cross-document focus
+        # Generate insights using new multi-call approach for better quality and specificity
         raw_insights = generate_insights(selected_text, prioritized_sections, insight_types)
 
         insights: List[Insight] = []
@@ -100,18 +115,36 @@ class InsightsService:
             insight_type = ri.get("type", "unknown")
             content = ri.get("content", "No content generated.")
             relevance = float(ri.get("relevance_score", 0.8) or 0.8)
+            
+            # Extract document and page info from new format
+            relevant_document = ri.get("relevant_document", primary_pdf_name)
+            insight_page = ri.get("page_number", page_number)
 
-            # Create comprehensive source documents list from multiple PDFs
-            source_documents = [{
+            # Create FOCUSED source documents list - only the 3 most relevant
+            source_documents = []
+            
+            # Add the primary document first
+            source_documents.append({
                 'pdf_name': primary_pdf_name,
                 'pdf_id': primary_doc.id if primary_doc else document_id,
                 'page': page_number,
-            }]
+            })
+            
+            # Add the insight-specific document if different from primary
+            if relevant_document != primary_pdf_name:
+                doc_info = document_service.get_document_by_filename(relevant_document)
+                if doc_info:
+                    source_documents.append({
+                        'pdf_name': relevant_document,
+                        'pdf_id': doc_info.id,
+                        'page': insight_page,
+                    })
 
-            # Add diverse documents from related sections
-            added_docs = {primary_pdf_name}
+            # Add only ONE additional most relevant document (limit to 3 total)
+            added_docs = {primary_pdf_name, relevant_document}
             for section in prioritized_sections:
-                if section['pdf_name'] not in added_docs and len(source_documents) < 5:
+                if (section['pdf_name'] not in added_docs and 
+                    len(source_documents) < 3):  # Changed from 5 to 3
                     doc_info = document_service.get_document_by_filename(section['pdf_name'])
                     source_documents.append({
                         'pdf_name': section['pdf_name'],
@@ -119,6 +152,7 @@ class InsightsService:
                         'page': section.get('page', 1),
                     })
                     added_docs.add(section['pdf_name'])
+                    break  # Only add one more document
 
             insight = Insight(
                 type=insight_type,
@@ -130,7 +164,7 @@ class InsightsService:
             insights.append(insight)
 
         processing_time = time.time() - start_time
-        print(f"DEBUG: Generated {len(insights)} insights referencing up to 5 documents")
+        print(f"DEBUG: Generated {len(insights)} insights using multi-call approach with document-specific references")
 
         return InsightResponse(
             insights=insights,

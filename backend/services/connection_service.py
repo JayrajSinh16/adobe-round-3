@@ -120,7 +120,7 @@ Return JSON array with 3-5 connection objects from DIFFERENT PDFs:"""
             print(f"DEBUG: Sending prompt to LLM (length: {len(user_prompt)} chars)")
             response = self.llm_client.generate(
                 prompt=user_prompt,
-                max_tokens=800,  # Increased for better responses
+                max_tokens=4000,  # Significantly increased for complete responses
                 temperature=0.4,  # Lower temperature for more focused output
                 system_prompt=system_prompt
             )
@@ -136,10 +136,11 @@ Return JSON array with 3-5 connection objects from DIFFERENT PDFs:"""
                 simplified_prompt = self._create_simplified_prompt(selected_text, pdf_context, source_pdf_name)
                 retry_response = self.llm_client.generate(
                     prompt=simplified_prompt,
-                    max_tokens=600,
+                    max_tokens=3000,  # Increased for complete retry responses
                     temperature=0.3,
                     system_prompt="You are a document analyst. Find connections between documents. Return only valid JSON array."
                 )
+                
                 retry_connections = self._parse_llm_response(retry_response, source_pdf_name)
                 if len(retry_connections) > len(connections):
                     connections = retry_connections
@@ -639,7 +640,7 @@ Provide a 2-3 sentence summary of these cross-document connections:"""
         try:
             summary = self.llm_client.generate(
                 prompt=user_prompt,
-                max_tokens=150,
+                max_tokens=800,  # Increased for complete summary
                 temperature=0.6,
                 system_prompt=system_prompt
             )
