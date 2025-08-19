@@ -41,7 +41,13 @@ backend/**/*.pyd
 
 # Backend runtime artifacts
 storage/
+backend/.env
+backend/.env.*
 
 # Frontend build artifacts (monorepo layout)
 frontend/node_modules/
 frontend/dist/
+frontend/.env
+# Local credentials (never commit real secrets)
+credentials/*
+!credentials/README.txt

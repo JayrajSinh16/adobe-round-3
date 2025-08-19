@@ -1,0 +1,95 @@
+# Jury Evaluation - Exclude unnecessary files from Docker build context
+
+# Git files
+.git
+.gitignore
+
+# Documentation that's not needed in container (but keep essential ones)
+Adobe_Finale Document.pdf
+*.md
+!README.md
+!JURY-INSTRUCTIONS.md
+
+# Development and local environment files (but keep the ones needed for Docker)
+.env.local
+.env.development
+backend/.env.example
+frontend/.env.example
+
+# Node modules (will be installed fresh in container)
+**/node_modules/
+**/dist/
+**/.next/
+**/coverage/
+
+# Python cache and virtual environments
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.Python
+**/.venv/
+**/venv/
+**/env/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Build outputs (will be generated fresh)
+frontend/dist/
+frontend/build/
+backend/**/*.egg-info/
+
+# Test files that aren't needed in production
+**/*test*.py
+**/*_test.py
+**/test_*.py
+**/tests/
+**/*.test.js
+**/*.spec.js
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# Exclude local credentials from image (mount at runtime instead)
+credentials/*
+!credentials/README.txt
+
+# Do not bake local backend env into the image (jury passes env at runtime)
+backend/.env
+backend/.env.*

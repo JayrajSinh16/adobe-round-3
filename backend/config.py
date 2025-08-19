@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     
     # LLM settings (Gemini only)
     google_api_key: Optional[str] = os.getenv("GOOGLE_API_KEY")
+    # Support service account path if provided by jury via -e GOOGLE_APPLICATION_CREDENTIALS
+    google_application_credentials: Optional[str] = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    # Allow provider selection (default gemini per jury docs); currently only gemini used.
+    llm_provider: str = os.getenv("LLM_PROVIDER", "gemini")
     gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
     
     # Insights Configuration
