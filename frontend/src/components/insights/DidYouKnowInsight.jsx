@@ -33,7 +33,7 @@ const DidYouKnowInsight = ({ insight }) => {
       {/* Main Content */}
       <div className="space-y-6">
         {/* Discovery Highlight */}
-        <div className="bg-gradient-to-r from-emerald-50 via-emerald-25 to-white rounded-2xl p-6 border-l-4 border-emerald-500">
+        <div className="bg-gradient-to-r from-emerald-50 via-emerald-100 to-white rounded-2xl p-6 border-l-4 border-emerald-500">
           <div className="flex items-start space-x-4">
             <div className="p-2 bg-emerald-100 rounded-lg flex-shrink-0 mt-1">
               <Sparkles className="w-5 h-5 text-emerald-600" />
@@ -47,8 +47,47 @@ const DidYouKnowInsight = ({ insight }) => {
           </div>
         </div>
 
+        {/* Why This Matters */}
+        {insight.why_this_matters && (
+          <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl p-6 border border-amber-200">
+            <div className="flex items-start space-x-4">
+              <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0 mt-1">
+                <Target className="w-5 h-5 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Why This Matters</h3>
+                <p className="text-gray-700 leading-relaxed">
+                  {insight.why_this_matters}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Insight Categories */}
+        <div className="bg-gray-50 rounded-xl p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2">
+            <Eye className="w-5 h-5 text-gray-600" />
+            <span>Analysis Outcome</span>
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <h4 className="font-semibold text-emerald-600 text-sm">Learning Value</h4>
+              <p className="text-gray-700 text-sm leading-relaxed">
+                {insight.learning_value || 'This discovery enhances your understanding of the subject matter and provides valuable context that might not be immediately obvious from a surface reading.'}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-semibold text-blue-600 text-sm">Practical Application</h4>
+              <p className="text-gray-700 text-sm leading-relaxed">
+                {insight.practical_application || 'Consider how this insight might influence your approach to related topics or decisions. Sometimes unexpected knowledge leads to innovative solutions.'}
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Fun Fact Metrics */}
-        {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl p-6">
             <div className="flex items-center space-x-3 mb-4">
               <Brain className="w-6 h-6 text-emerald-600" />
@@ -75,6 +114,7 @@ const DidYouKnowInsight = ({ insight }) => {
             </div>
           </div>
 
+          
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6">
             <div className="flex items-center space-x-3 mb-4">
               <BookOpen className="w-6 h-6 text-blue-600" />
@@ -82,59 +122,25 @@ const DidYouKnowInsight = ({ insight }) => {
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Document Section</span>
+                <span className="text-sm text-gray-600">Document</span>
                 <span className="text-sm font-medium text-blue-600">
-                  {insight.section || 'Executive Summary'}
+                  {insight.source_context?.pdf_name || insight.section || 'Executive Summary'}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Page Reference</span>
                 <span className="text-sm font-medium text-blue-600">
-                  Page {insight.page || Math.floor(Math.random() * 20) + 1}
+                  Page {insight.source_context?.page_number || insight.page || Math.floor(Math.random() * 20) + 1}
                 </span>
               </div>
             </div>
           </div>
-        </div> */}
-
-        {/* Insight Categories */}
-        <div className="bg-gray-50 rounded-xl p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2">
-            <Eye className="w-5 h-5 text-gray-600" />
-            <span>Why This Matters</span>
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <h4 className="font-semibold text-emerald-600 text-sm">Learning Value</h4>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                {insight.learning_value || 'This discovery enhances your understanding of the subject matter and provides valuable context that might not be immediately obvious from a surface reading.'}
-              </p>
-            </div>
-            <div className="space-y-2">
-              <h4 className="font-semibold text-blue-600 text-sm">Practical Application</h4>
-              <p className="text-gray-700 text-sm leading-relaxed">
-                {insight.practical_application || 'Consider how this insight might influence your approach to related topics or decisions. Sometimes unexpected knowledge leads to innovative solutions.'}
-              </p>
-            </div>
-          </div>
         </div>
 
-        {/* Why This Matters */}
-        {insight.why_this_matters && (
-          <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl p-6 border border-amber-200">
-            <div className="flex items-start space-x-4">
-              <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0 mt-1">
-                <Target className="w-5 h-5 text-amber-600" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Why This Matters</h3>
-                <p className="text-gray-700 leading-relaxed">
-                  {insight.why_this_matters}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+        
+
+        
+        
 
         {/* Share and Save Actions */}
         <div className="flex items-center justify-between bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-4">
@@ -143,6 +149,11 @@ const DidYouKnowInsight = ({ insight }) => {
             <span className="text-sm font-medium text-gray-700">
               Save this interesting fact for future reference
             </span>
+            {insight.confidence && (
+              <div className="text-xs font-medium text-emerald-600 bg-emerald-100 px-2 py-1 rounded ml-2">
+                {Math.round(insight.confidence * 100)}% confidence
+              </div>
+            )}
           </div>
           <div className="flex items-center space-x-2">
             <motion.button
@@ -172,6 +183,34 @@ const DidYouKnowInsight = ({ insight }) => {
             </div>
           </div>
         )}
+
+        {/* Source Documents
+        {insight.source_documents && insight.source_documents.length > 0 && (
+          <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl p-6 border border-gray-200">
+            <div className="flex items-start space-x-4">
+              <div className="p-2 bg-gray-100 rounded-lg flex-shrink-0 mt-1">
+                <BookOpen className="w-5 h-5 text-gray-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-gray-900 mb-3">Source Documents</h3>
+                <div className="space-y-2">
+                  {insight.source_documents.map((doc, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                        <span className="text-gray-700 font-medium">{doc.pdf_name}</span>
+                        <span className="text-sm text-gray-500">Page {doc.page_number}</span>
+                      </div>
+                      <div className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                        {Math.round(doc.relevance_score * 100)}% relevance
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )} */}
       </div>
     </motion.section>
   );

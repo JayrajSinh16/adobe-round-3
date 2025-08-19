@@ -56,12 +56,12 @@ const ContradictionFoundInsight = ({ insight }) => {
             </div>
             <div className="space-y-3">
               <div className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap break-words">
-                {insight.sourceA || "First documented perspective or claim that contradicts other findings in the analysis."}
+                {insight.source_a?.description || insight.sourceA || "First documented perspective or claim that contradicts other findings in the analysis."}
               </div>
               <div className="flex items-center space-x-2">
                 <span className="text-xs text-gray-500">Document:</span>
                 <span className="text-xs font-medium text-red-600">
-                  {insight.documentA || insight.source || "Primary Source"}
+                  {insight.source_a?.pdf_name || insight.documentA || insight.source || "Primary Source"}
                 </span>
               </div>
             </div>
@@ -75,12 +75,12 @@ const ContradictionFoundInsight = ({ insight }) => {
             </div>
             <div className="space-y-3">
               <div className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap break-words">
-                {insight.sourceB || "Alternative perspective or contradictory evidence found in the document set."}
+                {insight.source_b?.description || insight.sourceB || "Alternative perspective or contradictory evidence found in the document set."}
               </div>
               <div className="flex items-center space-x-2">
                 <span className="text-xs text-gray-500">Document:</span>
                 <span className="text-xs font-medium text-green-600">
-                  {insight.documentB || "Secondary Source"}
+                  {insight.source_b?.pdf_name || insight.documentB || "Secondary Source"}
                 </span>
               </div>
             </div>
@@ -96,6 +96,15 @@ const ContradictionFoundInsight = ({ insight }) => {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="text-center bg-white rounded-lg p-4">
+              <div className="text-2xl font-black text-blue-600 mb-2">
+                {Math.round((insight.confidence || 0.7) * 100)}%
+              </div>
+              <div className="text-sm font-bold text-gray-600 uppercase tracking-wide">
+                Confidence
+              </div>
+            </div>
+            
+            <div className="text-center bg-white rounded-lg p-4">
               <div className="text-2xl font-black text-orange-600 mb-2">
                 {insight.severity || 'Medium'}
               </div>
@@ -105,20 +114,11 @@ const ContradictionFoundInsight = ({ insight }) => {
             </div>
             
             <div className="text-center bg-white rounded-lg p-4">
-              <div className="text-2xl font-black text-red-600 mb-2">
-                {insight.impact || 'High'}
+              <div className="text-2xl font-black text-green-600 mb-2">
+                {insight.source_documents?.length || 1}
               </div>
               <div className="text-sm font-bold text-gray-600 uppercase tracking-wide">
-                Impact
-              </div>
-            </div>
-            
-            <div className="text-center bg-white rounded-lg p-4">
-              <div className="text-2xl font-black text-blue-600 mb-2">
-                {insight.urgency || 'Medium'}
-              </div>
-              <div className="text-sm font-bold text-gray-600 uppercase tracking-wide">
-                Urgency
+                Sources
               </div>
             </div>
           </div>
@@ -129,8 +129,7 @@ const ContradictionFoundInsight = ({ insight }) => {
               <div>
                 <h4 className="font-semibold text-yellow-800 mb-1">Recommended Action</h4>
                 <p className="text-yellow-700 text-sm">
-                  Immediate verification required. Cross-reference with additional sources to resolve 
-                  conflicting information before making decisions based on this data.
+                  {insight.resolution_strategy || "Immediate verification required. Cross-reference with additional sources to resolve conflicting information before making decisions based on this data."}
                 </p>
               </div>
             </div>
@@ -195,6 +194,34 @@ const ContradictionFoundInsight = ({ insight }) => {
                 <p className="text-gray-700 leading-relaxed">
                   {insight.actionable}
                 </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Source Documents */}
+        {insight.source_documents && insight.source_documents.length > 0 && (
+          <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl p-6 border border-gray-200">
+            <div className="flex items-start space-x-4">
+              <div className="p-2 bg-gray-100 rounded-lg flex-shrink-0 mt-1">
+                <Search className="w-5 h-5 text-gray-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-gray-900 mb-3">Analyzed Documents</h3>
+                <div className="space-y-2">
+                  {insight.source_documents.map((doc, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                        <span className="text-gray-700 font-medium">{doc.pdf_name}</span>
+                        <span className="text-sm text-gray-500">Page {doc.page_number}</span>
+                      </div>
+                      <div className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                        {Math.round(doc.relevance_score * 100)}% relevance
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

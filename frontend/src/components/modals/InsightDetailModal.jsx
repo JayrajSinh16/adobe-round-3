@@ -37,6 +37,15 @@ const InsightDetailModal = ({ insight, isOpen, onClose }) => {
         icon: Target,
         component: 'KeyOutcome'
       },
+      key_takeaway: {
+        label: 'Key Outcome',
+        description: 'Strategic insight that drives competitive advantage',
+        color: '#DC2626',
+        bgGradient: 'from-red-50 via-red-100 to-white',
+        borderColor: 'border-red-200',
+        icon: Target,
+        component: 'KeyOutcome'
+      },
       KeyOutcome: {
         label: 'Key Outcome',
         description: 'Strategic insight that drives competitive advantage',
@@ -95,6 +104,15 @@ const InsightDetailModal = ({ insight, isOpen, onClose }) => {
         icon: AlertTriangle,
         component: 'ContradictionFound'
       },
+      contradictions: {
+        label: 'Contradiction Found',
+        description: 'Conflicting information requiring immediate attention',
+        color: '#EA580C',
+        bgGradient: 'from-orange-50 via-orange-100 to-white',
+        borderColor: 'border-orange-200',
+        icon: AlertTriangle,
+        component: 'ContradictionFound'
+      },
       ContradictionFound: {
         label: 'Contradiction Found',
         description: 'Conflicting information requiring immediate attention',
@@ -124,6 +142,15 @@ const InsightDetailModal = ({ insight, isOpen, onClose }) => {
         icon: CheckCircle2,
         component: 'RealWorldExample'
       },
+      examples: {
+        label: 'Real-World Example',
+        description: 'Real-world examples and implementation scenarios',
+        color: '#0891B2',
+        bgGradient: 'from-cyan-50 via-cyan-100 to-white',
+        borderColor: 'border-cyan-200',
+        icon: CheckCircle2,
+        component: 'RealWorldExample'
+      },
       RealWorldExample: {
         label: 'Real-World Example',
         description: 'Real-world examples and implementation scenarios',
@@ -144,6 +171,15 @@ const InsightDetailModal = ({ insight, isOpen, onClose }) => {
         icon: Brain,
         component: 'CrossDocumentInspiration'
       },
+      cross_references: {
+        label: 'Cross-Document Inspiration',
+        description: 'Creative connections spanning multiple sources',
+        color: '#7C3AED',
+        bgGradient: 'from-purple-50 via-purple-100 to-white',
+        borderColor: 'border-purple-200',
+        icon: Brain,
+        component: 'CrossDocumentInspiration'
+      },
       CrossDocumentInspiration: {
         label: 'Cross-Document Inspiration',
         description: 'Creative connections spanning multiple sources',
@@ -152,6 +188,26 @@ const InsightDetailModal = ({ insight, isOpen, onClose }) => {
         borderColor: 'border-purple-200',
         icon: Brain,
         component: 'CrossDocumentInspiration'
+      },
+
+      // Did You Know variations
+      did_you_know: {
+        label: 'Did You Know?',
+        description: 'Fascinating discoveries from your documents',
+        color: '#059669',
+        bgGradient: 'from-emerald-50 via-emerald-100 to-white',
+        borderColor: 'border-emerald-200',
+        icon: Lightbulb,
+        component: 'DidYouKnow'
+      },
+      DidYouKnow: {
+        label: 'Did You Know?',
+        description: 'Fascinating discoveries from your documents',
+        color: '#059669',
+        bgGradient: 'from-emerald-50 via-emerald-100 to-white',
+        borderColor: 'border-emerald-200',
+        icon: Lightbulb,
+        component: 'DidYouKnow'
       }
     };
 
