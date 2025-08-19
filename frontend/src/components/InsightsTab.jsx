@@ -31,6 +31,10 @@ const styleForType = (t) => {
 const InsightsTab = ({ onInsightClick, insightsData, insightsError }) => {
   const insights = Array.isArray(insightsData?.insights) ? insightsData.insights : [];
   const hasData = insights.length > 0;
+  
+  // Debug logging
+  console.log('InsightsTab render:', { insightsData, insights, hasData });
+  
   return (
     <>
       {" "}
@@ -51,6 +55,7 @@ const InsightsTab = ({ onInsightClick, insightsData, insightsError }) => {
           </div>
         )}
         {!insightsError && insights.map((insight, index) => {
+          console.log(`Rendering insight ${index}:`, insight);
           const Icon = iconForType(insight.type);
           const style = styleForType(insight.type);
           const source = Array.isArray(insight.source_documents) && insight.source_documents.length > 0

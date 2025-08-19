@@ -19,6 +19,7 @@ const LeftPanel = ({
   onFileUpload,
   onFileDelete,
   setRightPanelVisible, // Add this prop to control right panel
+  onNavigateToDocument, // Add this prop for PDF navigation
 }) => {
   const [visitedFiles, setVisitedFiles] = useState(new Set());
   const fileInputRef = useRef(null);
@@ -223,6 +224,7 @@ const LeftPanel = ({
                   formatTimestamp={formatTimestamp}
                   visitedFiles={visitedFiles}
                   leftPanelCollapsed={leftPanelCollapsed}
+                  onNavigateToDocument={onNavigateToDocument}
                 />
               )}
             </div>

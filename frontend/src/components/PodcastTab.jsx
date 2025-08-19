@@ -9,7 +9,6 @@ import {
   AlertCircle,
   Loader2
 } from 'lucide-react';
-import { generatePodcast, downloadPodcast } from '../services/api';
 
 /**
  * PODCAST TAB COMPONENT
@@ -23,75 +22,102 @@ import { generatePodcast, downloadPodcast } from '../services/api';
  */
 const PodcastTab = ({ 
   podcastGenerating, 
+  podcastData,
+  podcastError,
   handleGeneratePodcast,
   premiumEasing,
-  documentContent = null, // Add document content as prop
-  documentIds = [] // Add document IDs as prop
+  selectedTextContext
 }) => {
   // State management
   const [hasPodcast, setHasPodcast] = useState(false);
   const [podcastUrl, setPodcastUrl] = useState(null);
-  const [podcastId, setPodcastId] = useState(null);
+  const [podcastBlob, setPodcastBlob] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState(null);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [transcript, setTranscript] = useState('');
   
   // Audio ref for playback control
   const audioRef = useRef(null);
-  
-  // API call to generate podcast using the actual service
-  const generatePodcastAPI = async () => {
-    try {
-      setError(null);
-      setIsGenerating(true);
-      
-      // FOR TESTING: Use a sample audio URL (uncomment the lines below)
-      setTimeout(() => {
-        // Try one of these direct audio URLs:
-        setPodcastUrl('https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'); // Known to work for downloads
-        // setPodcastUrl('https://actions.google.com/sounds/v1/animals/animal_squealing.ogg'); // Alternative
-        // setPodcastUrl('https://file-examples.com/storage/fef68c8e4f86b4e98728faf/2017/11/file_example_MP3_700KB.mp3'); // Alternative
-        setPodcastId('test-podcast-1234');
-        setHasPodcast(true);
-        setIsGenerating(false);
-      }, 2000);
-      return;
-      
-      // Use the actual API service
-      const response = await generatePodcast(
-        documentContent || 'Document analysis content', 
-        documentIds
-      );
-      
-      if (response.url || response.audioUrl) {
-        setPodcastUrl(response.url || response.audioUrl);
-        setPodcastId(response.id || response.podcastId);
-        setHasPodcast(true);
-        setIsGenerating(false);
-      } else {
-        throw new Error('No podcast URL received from API');
-      }
-    } catch (err) {
-      console.error('Error generating podcast:', err);
-      setError(err.message);
-      setIsGenerating(false);
+
+  // Debug logging for state changes
+  React.useEffect(() => {
+    console.log('PodcastTab state:', {
+      podcastGenerating,
+      hasPodcast,
+      error,
+      podcastError,
+      podcastData: !!podcastData
+    });
+  }, [podcastGenerating, hasPodcast, error, podcastError, podcastData]);
+
+  // Reset state function - defined early to avoid reference errors
+  const resetPodcastState = useCallback(() => {
+    setHasPodcast(false);
+    setPodcastUrl(null);
+    setPodcastBlob(null);
+    setError(null);
+    setCurrentTime(0);
+    setDuration(0);
+    setIsPlaying(false);
+    setTranscript('');
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
     }
-  };
+  }, []);
+
+  // Effect to handle podcast data updates
+  React.useEffect(() => {
+    if (podcastData && podcastData.success) {
+      setPodcastUrl(podcastData.audioUrl);
+      setPodcastBlob(podcastData.audioBlob);
+      setTranscript(podcastData.transcript || '');
+      setDuration(podcastData.duration || 0);
+      setHasPodcast(true);
+      setError(null);
+      console.log('Podcast data loaded:', podcastData);
+    }
+  }, [podcastData]);
+
+  // Effect to handle podcast errors
+  React.useEffect(() => {
+    if (podcastError) {
+      setError(podcastError);
+      setHasPodcast(false);
+    }
+  }, [podcastError]);
+
+  // Effect to sync generating state and handle cleanup
+  React.useEffect(() => {
+    if (!podcastGenerating && error && !podcastError) {
+      // Clear error when generation stops and no external error
+      setError(null);
+    }
+  }, [podcastGenerating, podcastError, error]);
   
   // Download podcast function
   const handleDownload = async () => {
-    if (!podcastUrl) return;
+    if (!podcastBlob && !podcastUrl) return;
     
     try {
       setIsDownloading(true);
       
-      // For testing mode (direct URLs) - fetch and download the audio file
-      if (podcastUrl.startsWith('http')) {
+      // Use the blob if available (preferred)
+      if (podcastBlob) {
+        const url = URL.createObjectURL(podcastBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ai-podcast-${Date.now()}.wav`;
+        document.body.appendChild(a);
+        a.click();
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else if (podcastUrl) {
+        // Fallback to URL (for testing or external URLs)
         try {
-          // Fetch the audio file
           const response = await fetch(podcastUrl, {
             mode: 'cors',
             headers: {
@@ -103,43 +129,20 @@ const PodcastTab = ({
             throw new Error('Failed to fetch audio file');
           }
           
-          // Get the blob
           const blob = await response.blob();
-          
-          // Create download link
-          const url = window.URL.createObjectURL(blob);
+          const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          
-          // Get file extension from URL or default to mp3
-          const urlParts = podcastUrl.split('.');
-          const extension = urlParts[urlParts.length - 1] || 'mp3';
-          a.download = `ai-podcast-${podcastId || Date.now()}.${extension}`;
-          
-          // Trigger download
+          a.download = `ai-podcast-${Date.now()}.wav`;
           document.body.appendChild(a);
           a.click();
-          
-          // Cleanup
-          window.URL.revokeObjectURL(url);
+          URL.revokeObjectURL(url);
           document.body.removeChild(a);
           
         } catch (fetchError) {
           console.log('Direct download failed, opening in new tab:', fetchError);
-          // Fallback: open in new tab
           window.open(podcastUrl, '_blank');
         }
-      } else if (podcastId) {
-        // For production mode - use the API
-        const blob = await downloadPodcast(podcastId);
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `podcast-${podcastId}.mp3`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
       }
     } catch (err) {
       console.error('Error downloading podcast:', err);
@@ -154,27 +157,10 @@ const PodcastTab = ({
     }
   };
   
-  // Enhanced podcast generation handler
+  // Enhanced podcast generation handler - delegates to parent
   const handlePodcastGeneration = useCallback(async () => {
-    handleGeneratePodcast();
-    await generatePodcastAPI();
-  }, [handleGeneratePodcast, documentContent, documentIds]);
-  
-  // Reset state function
-  const resetPodcastState = useCallback(() => {
-    setHasPodcast(false);
-    setPodcastUrl(null);
-    setPodcastId(null);
-    setError(null);
-    setCurrentTime(0);
-    setDuration(0);
-    setIsPlaying(false);
-    setIsGenerating(false);
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-  }, []);
+    handleGeneratePodcast(); // Call parent handler which does the actual API work
+  }, [handleGeneratePodcast]);
   
   // Audio playback controls
   const togglePlayPause = useCallback(() => {
@@ -236,7 +222,7 @@ const PodcastTab = ({
       className="space-y-6"
     >
       <AnimatePresence mode="wait">
-        {isGenerating ? (
+        {podcastGenerating ? (
           /* Generation Loading State */
           <motion.div
             key="generating"
@@ -486,18 +472,18 @@ const PodcastTab = ({
                     resetPodcastState();
                     handlePodcastGeneration();
                   }}
-                  disabled={isGenerating}
+                  disabled={podcastGenerating}
                   className="bg-gradient-to-r from-[#DC2626] to-[#B91C1C] text-white font-medium py-2 px-4 rounded-lg hover:shadow-lg transition-all duration-300 flex items-center space-x-2 group/btn relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
-                  whileHover={{ scale: isGenerating ? 1 : 1.02 }}
-                  whileTap={{ scale: isGenerating ? 1 : 0.98 }}
+                  whileHover={{ scale: podcastGenerating ? 1 : 1.02 }}
+                  whileTap={{ scale: podcastGenerating ? 1 : 0.98 }}
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
-                  {isGenerating ? (
+                  {podcastGenerating ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <Play className="w-4 h-4" />
                   )}
-                  <span className="text-sm">{isGenerating ? 'Generating...' : 'Generate'}</span>
+                  <span className="text-sm">{podcastGenerating ? 'Generating...' : 'Generate'}</span>
                 </motion.button>
               </div>
             </motion.div>
@@ -542,23 +528,23 @@ const PodcastTab = ({
               
               <motion.button
                 onClick={handlePodcastGeneration}
-                disabled={isGenerating}
+                disabled={podcastGenerating}
                 className="w-full bg-gradient-to-r from-[#DC2626] to-[#B91C1C] text-white font-bold py-4 px-6 rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center space-x-3 group relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
-                whileHover={{ scale: isGenerating ? 1 : 1.02, y: isGenerating ? 0 : -1 }}
-                whileTap={{ scale: isGenerating ? 1 : 0.98 }}
+                whileHover={{ scale: podcastGenerating ? 1 : 1.02, y: podcastGenerating ? 0 : -1 }}
+                whileTap={{ scale: podcastGenerating ? 1 : 0.98 }}
                 style={{
                   boxShadow: '0 4px 16px rgba(220, 38, 38, 0.2)'
                 }}
               >
                 {/* Button shine effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                {isGenerating ? (
+                {podcastGenerating ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <Play className="w-5 h-5" />
                 )}
-                <span>{isGenerating ? 'Generating AI Podcast...' : 'Generate AI Podcast'}</span>
-                {!isGenerating && (
+                <span>{podcastGenerating ? 'Generating AI Podcast...' : 'Generate AI Podcast'}</span>
+                {!podcastGenerating && (
                   <ArrowRight className="w-4 h-4 opacity-70 group-hover:translate-x-1 transition-transform duration-300" />
                 )}
               </motion.button>

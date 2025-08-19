@@ -12,7 +12,8 @@ const SemanticSearch = ({
   formatFileSize,
   formatTimestamp,
   visitedFiles,
-  leftPanelCollapsed
+  leftPanelCollapsed,
+  onNavigateToDocument
 }) => {
   // Local state for semantic search
   const [semanticSearchTerm, setSemanticSearchTerm] = useState('');
@@ -89,16 +90,23 @@ const SemanticSearch = ({
     });
   }, [semanticResults, filteredFiles]);
 
-  // Enhanced file selection with loading state
+  // Enhanced file selection with PDF navigation for semantic search results
   const handleFileClick = useCallback(async (file) => {
     setClickingFile(file.id);
     
     // Add a small delay to show the clicking animation
     setTimeout(() => {
-      handleFileSelectWithVisit(file);
+      if (file.isSemanticResult && onNavigateToDocument && file.pdfName && file.page) {
+        // Navigate to the specific document and page from semantic search
+        console.log(`🎯 Semantic search: navigating to ${file.pdfName}, page ${file.page}`);
+        onNavigateToDocument(file.pdfName, file.page, file.semanticHeading);
+      } else {
+        // Fallback to normal file selection
+        handleFileSelectWithVisit(file);
+      }
       setClickingFile(null);
     }, 150);
-  }, [handleFileSelectWithVisit]);
+  }, [handleFileSelectWithVisit, onNavigateToDocument]);
 
   return (
     <>

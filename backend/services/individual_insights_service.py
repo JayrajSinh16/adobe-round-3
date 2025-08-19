@@ -157,15 +157,11 @@ class IndividualInsightsService:
     
     def _generate_content_summary(self, selected_text: str, original_insight: str) -> str:
         """Generate a content summary combining selected text and insight"""
-        # Take first sentence from original insight as summary
-        sentences = original_insight.split('.')
-        if sentences and sentences[0].strip():
-            return sentences[0].strip() + "."
+        # Return the full original insight content instead of truncating
+        if original_insight and original_insight.strip():
+            return original_insight.strip()
         
-        # Fallback to truncated selected text
-        if len(selected_text) > 100:
-            return selected_text[:97] + "..."
-        
+        # Fallback to full selected text instead of truncating
         return selected_text
     
     def generate_key_takeaway(self, selected_text: str, document_id: str, 

@@ -42,9 +42,9 @@ const CrossDocumentInspirationInsight = ({ insight }) => {
             </div>
             <div className="flex-1">
               <h3 className="text-xl font-bold text-gray-900 mb-3">Innovative Connection</h3>
-              <p className="text-gray-800 text-lg leading-relaxed font-medium">
-                {insight.insight}
-              </p>
+              <div className="text-gray-800 text-lg leading-relaxed font-medium whitespace-pre-wrap break-words">
+                {insight.content}
+              </div>
             </div>
           </div>
         </div>
@@ -208,7 +208,7 @@ const CrossDocumentInspirationInsight = ({ insight }) => {
         </div>
 
         {/* Creative Applications */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
+        {/* <div className="bg-white border border-gray-200 rounded-xl p-6">
           <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2">
             <BookOpen className="w-5 h-5 text-blue-600" />
             <span>Creative Applications</span>
@@ -263,7 +263,7 @@ const CrossDocumentInspirationInsight = ({ insight }) => {
               </ul>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Collaborative Insights */}
         <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">

@@ -64,17 +64,23 @@ const DocumentUploader = () => {
     return () => { cancelled = true; };
   }, []);
 
+  // Cleanup blob URLs when component unmounts to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      uploadedFiles.forEach(file => {
+        if (file.previewUrl) {
+          URL.revokeObjectURL(file.previewUrl);
+        }
+      });
+    };
+  }, [uploadedFiles]);
+
   // File validation
   const validateFile = (file) => {
-    const maxSize = 50 * 1024 * 1024; // 50MB
     const allowedTypes = ['application/pdf'];
     
     if (!allowedTypes.includes(file.type)) {
       return 'Only PDF files are supported';
-    }
-    
-    if (file.size > maxSize) {
-      return 'File size must be less than 50MB';
     }
     
     return null;
@@ -166,9 +172,22 @@ const DocumentUploader = () => {
     }
   }, [processFiles]);
 
-  // Remove file
+  // Remove file with proper cleanup
   const removeFile = useCallback((fileId) => {
-    setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
+    setUploadedFiles(prev => {
+      const fileToRemove = prev.find(f => f.id === fileId);
+      if (fileToRemove?.previewUrl) {
+        // Clean up blob URL to prevent memory leaks
+        URL.revokeObjectURL(fileToRemove.previewUrl);
+      }
+      
+      // Clear any errors related to the removed file
+      if (fileToRemove?.name) {
+        setErrors(prevErrors => prevErrors.filter(error => !error.includes(fileToRemove.name)));
+      }
+      
+      return prev.filter(f => f.id !== fileId);
+    });
   }, []);
 
   // Format file size
@@ -215,6 +234,11 @@ const DocumentUploader = () => {
         }
       } catch (e) {
         console.error('Backend upload failed:', e);
+        
+        // Clean up UI state on backend upload failure
+        const failedFileNames = validFiles.map(f => f.name);
+        setUploadedFiles(prev => prev.filter(f => !failedFileNames.includes(f.name)));
+        
         setErrors([e?.message || 'Failed to upload documents to server']);
         return; // abort flow; do not persist to IndexedDB
       }
@@ -254,7 +278,19 @@ const DocumentUploader = () => {
       });
     } catch (error) {
       console.error('Continue flow failed:', error);
-      setErrors([error.message || 'Failed to continue']);
+      
+      // Clean up any files that might have been added but failed to process
+      const errorMessage = error.message || 'Failed to continue';
+      setErrors([errorMessage]);
+      
+      // If the error occurred during upload, remove any files that were added in this session
+      if (errorMessage.includes('upload') || errorMessage.includes('server')) {
+        setUploadedFiles(prev => {
+          // Keep only files that existed before this upload attempt
+          const existingFiles = prev.filter(f => f.status !== 'uploading');
+          return existingFiles;
+        });
+      }
     } finally {
       setUploading(false);
     }

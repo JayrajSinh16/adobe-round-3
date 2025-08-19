@@ -39,9 +39,9 @@ const ContradictionFoundInsight = ({ insight }) => {
             </div>
             <div className="flex-1">
               <h3 className="text-xl font-bold text-gray-900 mb-3">Conflicting Information Detected</h3>
-              <p className="text-gray-800 text-lg leading-relaxed font-medium">
-                {insight.insight}
-              </p>
+              <div className="text-gray-800 text-lg leading-relaxed font-medium whitespace-pre-wrap break-words">
+                {insight.content}
+              </div>
             </div>
           </div>
         </div>
@@ -55,9 +55,9 @@ const ContradictionFoundInsight = ({ insight }) => {
               <h3 className="text-lg font-bold text-gray-900">Source A Position</h3>
             </div>
             <div className="space-y-3">
-              <p className="text-gray-700 text-sm leading-relaxed">
+              <div className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap break-words">
                 {insight.sourceA || "First documented perspective or claim that contradicts other findings in the analysis."}
-              </p>
+              </div>
               <div className="flex items-center space-x-2">
                 <span className="text-xs text-gray-500">Document:</span>
                 <span className="text-xs font-medium text-red-600">
@@ -74,9 +74,9 @@ const ContradictionFoundInsight = ({ insight }) => {
               <h3 className="text-lg font-bold text-gray-900">Source B Position</h3>
             </div>
             <div className="space-y-3">
-              <p className="text-gray-700 text-sm leading-relaxed">
+              <div className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap break-words">
                 {insight.sourceB || "Alternative perspective or contradictory evidence found in the document set."}
-              </p>
+              </div>
               <div className="flex items-center space-x-2">
                 <span className="text-xs text-gray-500">Document:</span>
                 <span className="text-xs font-medium text-green-600">
