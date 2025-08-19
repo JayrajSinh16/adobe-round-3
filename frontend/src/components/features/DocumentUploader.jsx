@@ -2,8 +2,8 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import PDFViewerFixed from './PDFViewer';
-import {uploadDocuments} from '../services/api';
-import { getActivePDFs, upsertPDFs, dataUrlToBlob } from '../utils/pdfDb';
+import {uploadDocuments} from '../../services/api';
+import { getActivePDFs, upsertPDFs, dataUrlToBlob } from '../../utils/pdfDb';
 import { 
   Upload, 
   File, 

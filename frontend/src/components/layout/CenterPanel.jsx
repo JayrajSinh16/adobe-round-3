@@ -1,7 +1,7 @@
 import React, { useRef, useState, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from 'lucide-react';
-import InlinePDFViewer from './InlinePDFViewer';
+import InlinePDFViewer from '../features/InlinePDFViewer';
 
 const CenterPanel = ({
   selectedFile,

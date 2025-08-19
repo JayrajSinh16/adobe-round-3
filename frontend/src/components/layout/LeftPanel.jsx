@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Plus, Brain, File } from 'lucide-react';
-import FilenameSearch from './search/FilenameSearch';
-import SemanticSearch from './search/SemanticSearch';
+import FilenameSearch from '../search/FilenameSearch';
+import SemanticSearch from '../search/SemanticSearch';
 
 const LeftPanel = ({
   leftPanelCollapsed,

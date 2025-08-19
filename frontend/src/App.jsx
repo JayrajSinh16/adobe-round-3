@@ -2,9 +2,9 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
-import Footer from './components/Footer';
-import DocumentUploader from './components/DocumentUploader';
-import ResultAnalysis from './components/ResultAnalysis';
+import Footer from './components/layout/Footer';
+import DocumentUploader from './components/features/DocumentUploader';
+import ResultAnalysis from './components/layout/ResultAnalysis';
 import './App.css';
 
 function App() {

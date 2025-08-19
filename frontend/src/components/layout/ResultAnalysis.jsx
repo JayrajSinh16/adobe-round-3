@@ -10,9 +10,9 @@ import {
 import LeftPanel from './LeftPanel';
 import CenterPanel from './CenterPanel';
 import RightPanel from './RightPanel';
-import InsightDetailModal from './modals/InsightDetailModal';
-import { uploadDocuments, findConnections, generateInsights, listDocuments, fetchKeyTakeaway, fetchDidYouKnow, fetchContradictions, fetchExamples, fetchCrossReferences, generatePodcastAudio } from '../services/api';
-import { getActivePDFs, upsertPDFs, deletePDF } from '../utils/pdfDb';
+import InsightDetailModal from '../modals/InsightDetailModal';
+import { uploadDocuments, findConnections, generateInsights, listDocuments, fetchKeyTakeaway, fetchDidYouKnow, fetchContradictions, fetchExamples, fetchCrossReferences, generatePodcastAudio } from '../../services/api';
+import { getActivePDFs, upsertPDFs, deletePDF } from '../../utils/pdfDb';
 
 const PDFAnalysisWorkspace = () => {
   const location = useLocation();
