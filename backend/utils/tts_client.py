@@ -113,68 +113,15 @@ def generate_audio(text: str, speaker: str = "default") -> str:
                 logger.error(f"❌ Azure TTS error: {str(e)}")
                 provider = "local"  # Fallback to local
         
-        # Local TTS fallback with multiple options
+        # Local TTS fallback with pyttsx3
         if provider == "local" or provider == "azure":  # Fallback to local if Azure fails
             logger.info(f"🎤 Using local TTS fallback")
             
-            # Try gTTS (Google Text-to-Speech) first - most reliable
-            try:
-                from gtts import gTTS
-                import io
-                from pydub import AudioSegment
-                
-                logger.info("🎤 Using gTTS (Google Text-to-Speech)")
-                
-                # Determine language and speed based on speaker
-                lang = 'en'
-                slow = False
-                
-                # Create gTTS object
-                tts = gTTS(text=text, lang=lang, slow=slow)
-                
-                # Save to a temporary mp3 file first
-                mp3_path = output_path.replace('.wav', '.mp3')
-                tts.save(mp3_path)
-                
-                # Convert MP3 to WAV using pydub
-                audio = AudioSegment.from_mp3(mp3_path)
-                
-                # Apply voice modifications based on speaker
-                if speaker in ["Host", "Alex"]:  # Female voice simulation
-                    # Slightly higher pitch and faster speed
-                    audio = audio + 2  # Increase volume slightly
-                    audio = audio.speedup(playback_speed=1.05)
-                elif speaker in ["Expert", "Jamie"]:  # Male voice simulation  
-                    # Slightly lower pitch and slower speed
-                    audio = audio - 1  # Decrease volume slightly
-                    audio = audio.speedup(playback_speed=0.95)
-                
-                # Export as WAV
-                audio.export(output_path, format="wav")
-                
-                # Clean up temporary MP3
-                if os.path.exists(mp3_path):
-                    os.remove(mp3_path)
-                
-                if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
-                    logger.info(f"✅ gTTS synthesis completed")
-                    logger.info(f"✅ Audio file size: {os.path.getsize(output_path)} bytes")
-                    return output_filename
-                else:
-                    logger.error(f"❌ gTTS failed to create audio file")
-                    raise Exception("gTTS failed to create audio file")
-                    
-            except ImportError as e:
-                logger.warning(f"⚠️ gTTS not available: {e}")
-                logger.info("💡 Install with: pip install gtts pydub")
-            except Exception as e:
-                logger.warning(f"⚠️ gTTS error: {str(e)}")
-            
-            # Try pyttsx3 as secondary fallback
+            # Use pyttsx3 for local TTS
             try:
                 import pyttsx3
                 
-                logger.info(f"🎤 Using pyttsx3 TTS as secondary fallback")
+                logger.info(f"🎤 Using pyttsx3 TTS for local synthesis")
                 engine = pyttsx3.init()
                 
                 # Configure voice based on speaker

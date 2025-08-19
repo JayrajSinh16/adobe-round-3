@@ -55,7 +55,7 @@ class LLMClient:
     def generate(
         self, 
         prompt: str, 
-        max_tokens: int = 300,
+        max_tokens: int = 8000,  # Increased default limit
         temperature: float = 0.7,
         system_prompt: Optional[str] = None
     ) -> str:
@@ -68,8 +68,9 @@ class LLMClient:
         self._apply_rate_limiting()
         
         try:
-            # Increased token limit for better insights, but still conservative for free tier
-            conservative_tokens = min(max_tokens, 1500)  # Increased from 300 to 1500
+            # Remove conservative token limiting - use the requested max_tokens directly
+            # Gemini 1.5 Flash supports up to 8,192 output tokens
+            actual_tokens = min(max_tokens, 8192)  # Use Gemini's actual limit
             
             # Create model with optional system instruction
             if system_prompt:
@@ -82,7 +83,7 @@ class LLMClient:
             
             # Generate content
             generation_config = self._client.types.GenerationConfig(
-                max_output_tokens=conservative_tokens,
+                max_output_tokens=actual_tokens,
                 temperature=temperature,
             )
             
@@ -123,7 +124,7 @@ def get_llm_client() -> LLMClient:
 
 def chat_with_llm(
     prompt: str, 
-    max_tokens: int = 300,
+    max_tokens: int = 8000,  # Increased default
     temperature: float = 0.7,
     system_prompt: Optional[str] = None
 ) -> str:

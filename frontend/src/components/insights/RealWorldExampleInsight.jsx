@@ -35,7 +35,7 @@ const RealWorldExampleInsight = ({ insight }) => {
       {/* Main Content */}
       <div className="space-y-6">
         {/* Example Highlight */}
-        <div className="bg-gradient-to-r from-cyan-50 via-blue-25 to-white rounded-2xl p-6 border-l-4 border-cyan-500">
+        <div className="bg-gradient-to-r from-cyan-50 via-cyan-100 to-white rounded-2xl p-6 border-l-4 border-cyan-500">
           <div className="flex items-start space-x-4">
             <div className="p-2 bg-cyan-100 rounded-lg flex-shrink-0 mt-1">
               <Building className="w-5 h-5 text-cyan-600" />
@@ -61,52 +61,81 @@ const RealWorldExampleInsight = ({ insight }) => {
               <span>Implementation Approach</span>
             </h3>
             <div className="space-y-3">
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-cyan-500 rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-gray-700 text-sm">
-                  {insight.approach1 || "Phased implementation starting with pilot program"}
-                </p>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-cyan-500 rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-gray-700 text-sm">
-                  {insight.approach2 || "Cross-functional team collaboration"}
-                </p>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-cyan-500 rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-gray-700 text-sm">
-                  {insight.approach3 || "Continuous monitoring and optimization"}
-                </p>
-              </div>
+              {insight.implementation_approach && insight.implementation_approach.length > 0 ? (
+                insight.implementation_approach.map((approach, index) => (
+                  <div key={index} className="flex items-start space-x-3">
+                    <div className="w-6 h-6 bg-cyan-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-xs font-bold text-cyan-600">{index + 1}</span>
+                    </div>
+                    <p className="text-gray-700 text-sm leading-relaxed">
+                      {approach}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-2 h-2 bg-cyan-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p className="text-gray-700 text-sm">
+                      {insight.approach1 || "Phased implementation starting with pilot program"}
+                    </p>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-2 h-2 bg-cyan-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p className="text-gray-700 text-sm">
+                      {insight.approach2 || "Cross-functional team collaboration"}
+                    </p>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-2 h-2 bg-cyan-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p className="text-gray-700 text-sm">
+                      {insight.approach3 || "Continuous monitoring and optimization"}
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Results */}
-           <div className="bg-gray-50 rounded-xl p-6">
+          {/* Key Challenges */}
+          <div className="bg-gray-50 rounded-xl p-6">
             <h3 className="text-lg font-bold text-orange-600 mb-4 flex items-center space-x-2">
-              
               <span>Key Challenges</span>
             </h3>
             <div className="space-y-3">
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-gray-700 text-sm">
-                  {insight.challenge1 || "Phased implementation starting with pilot program"}
-                </p>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-gray-700 text-sm">
-                  {insight.challenge2 || "Cross-functional team collaboration"}
-                </p>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-gray-700 text-sm">
-                  {insight.challenge3 || "Continuous monitoring and optimization"}
-                </p>
-              </div>
+              {insight.key_challenges && insight.key_challenges.length > 0 ? (
+                insight.key_challenges.map((challenge, index) => (
+                  <div key={index} className="flex items-start space-x-3">
+                    <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-xs font-bold text-orange-600">{index + 1}</span>
+                    </div>
+                    <p className="text-gray-700 text-sm leading-relaxed">
+                      {challenge}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p className="text-gray-700 text-sm">
+                      {insight.challenge1 || "Initial resistance to change"}
+                    </p>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p className="text-gray-700 text-sm">
+                      {insight.challenge2 || "Technical integration complexity"}
+                    </p>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p className="text-gray-700 text-sm">
+                      {insight.challenge3 || "Resource allocation constraints"}
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -179,10 +208,10 @@ const RealWorldExampleInsight = ({ insight }) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="text-center bg-white rounded-lg p-4">
               <div className="text-2xl font-black text-blue-600 mb-2">
-                {insight.relevance || 'High'}
+                {Math.round((insight.confidence || 0.85) * 100)}%
               </div>
               <div className="text-sm font-bold text-gray-600 uppercase tracking-wide">
-                Relevance
+                Confidence
               </div>
             </div>
             
@@ -197,10 +226,10 @@ const RealWorldExampleInsight = ({ insight }) => {
             
             <div className="text-center bg-white rounded-lg p-4">
               <div className="text-2xl font-black text-purple-600 mb-2">
-                {insight.effort || 'Moderate'}
+                {insight.source_documents?.length || 1}
               </div>
               <div className="text-sm font-bold text-gray-600 uppercase tracking-wide">
-                Effort Required
+                Sources
               </div>
             </div>
           </div>
@@ -230,6 +259,34 @@ const RealWorldExampleInsight = ({ insight }) => {
                   </span>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Source Documents */}
+        {insight.source_documents && insight.source_documents.length > 0 && (
+          <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl p-6 border border-gray-200">
+            <div className="flex items-start space-x-4">
+              <div className="p-2 bg-gray-100 rounded-lg flex-shrink-0 mt-1">
+                <BarChart3 className="w-5 h-5 text-gray-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-gray-900 mb-3">Source Documents</h3>
+                <div className="space-y-2">
+                  {insight.source_documents.map((doc, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>
+                        <span className="text-gray-700 font-medium">{doc.pdf_name}</span>
+                        <span className="text-sm text-gray-500">Page {doc.page_number}</span>
+                      </div>
+                      <div className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                        {Math.round(doc.relevance_score * 100)}% relevance
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}
