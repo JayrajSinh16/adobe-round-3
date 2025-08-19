@@ -4,7 +4,7 @@ import { AnimatePresence } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
 import Footer from './components/layout/Footer';
 import DocumentUploader from './components/features/DocumentUploader';
-import ResultAnalysis from './components/layout/ResultAnalysis';
+import ResultAnalysis from './components/layout/result/ResultAnalysis';
 import './App.css';
 
 function App() {
