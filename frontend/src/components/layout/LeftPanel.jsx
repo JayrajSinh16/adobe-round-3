@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Plus, Brain, File } from 'lucide-react';
 import FilenameSearch from '../search/FilenameSearch';
 import SemanticSearch from '../search/SemanticSearch';
+import { listDocuments, deleteDocument } from '../../services/api';
 
 const LeftPanel = ({
   leftPanelCollapsed,
@@ -53,19 +54,35 @@ const LeftPanel = ({
     handleFileSelect(file);
   }, [handleFileSelect]);
 
-  const handleFileDelete = useCallback((fileId) => {
+  const handleFileDelete = useCallback(async (fileId) => {
+    // Attempt backend deletion first (best-effort, non-blocking UI)
+    try {
+      const target = (filteredFiles || []).find((f) => f.id === fileId);
+      const filename = target?.name;
+      if (filename) {
+        const resp = await listDocuments();
+        const docs = Array.isArray(resp?.documents) ? resp.documents : [];
+        const match = docs.find((d) => d?.filename === filename);
+        if (match?.id) {
+          try {
+            await deleteDocument(match.id);
+          } catch {}
+        }
+      }
+    } catch {}
+
     // Remove from visited files if it was visited
     setVisitedFiles((prev) => {
       const newVisited = new Set(prev);
       newVisited.delete(fileId);
       return newVisited;
     });
-    
-    // Call parent delete handler
+
+    // Delegate to parent for local/indexedDB state updates
     if (onFileDelete) {
       onFileDelete(fileId);
     }
-  }, [onFileDelete]);
+  }, [onFileDelete, filteredFiles]);
 
   const handleUploadClick = useCallback(() => {
     if (fileInputRef.current) fileInputRef.current.click();
