@@ -1,8 +1,10 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional, List
 import os
 
 class Settings(BaseSettings):
+    # pydantic v2-style config: load from .env and ignore extra env keys gracefully
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     # Application settings
     app_name: str = "Document Insight System"
     environment: str = "development"
@@ -57,11 +59,18 @@ class Settings(BaseSettings):
     azure_tts_endpoint: Optional[str] = os.getenv("AZURE_TTS_ENDPOINT")
     azure_tts_region: Optional[str] = os.getenv("AZURE_TTS_REGION")
     
+    # YouTube API (used by /api/youtube)
+    # Prefer env var; optionally support file-based secret via YOUTUBE_API_KEY_FILE
+    youtube_api_key: Optional[str] = (
+        os.getenv("YOUTUBE_API_KEY")
+        or (
+            (lambda p: (open(p, "r", encoding="utf-8").read().strip() if os.path.isfile(p) else None))
+            (os.getenv("YOUTUBE_API_KEY_FILE", ""))
+        )
+    )
+
     # Adobe Embed API
     adobe_embed_api_key: Optional[str] = os.getenv("ADOBE_EMBED_API_KEY")
-    
-    class Config:
-        env_file = ".env"
 
 settings = Settings()
 

@@ -9,7 +9,8 @@ export default function HeaderBar({
   rightPanelVisible,
   setRightPanelVisible,
   handleBackToUpload,
-  itemVariants
+  itemVariants,
+  onOpenYouTube
 }) {
   return (
     <motion.header 
@@ -101,21 +102,17 @@ export default function HeaderBar({
         </div>
 
         <div className="flex items-center space-x-2">
-          {rightPanelVisible && (
-            <motion.div 
-              className="hidden md:flex items-center space-x-2 px-3 py-2 bg-[#DC2626]/10 rounded-xl border border-[#DC2626]/20"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-            >
-              <motion.div 
-                className="w-2 h-2 bg-[#DC2626] rounded-full"
-                animate={{ scale: [1, 1.2, 1], opacity: [0.6, 1, 0.6] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-              />
-              <span className="text-xs font-bold text-[#DC2626]">Insights Active</span>
-            </motion.div>
-          )}
+          <motion.button
+            onClick={onOpenYouTube}
+            className={`relative px-3 py-2.5 rounded-xl font-semibold text-xs transition-all duration-300 overflow-hidden group ${selectedFile ? 'bg-[#FF0000]/10 text-[#FF0000] hover:bg-[#FF0000]/20 border border-[#FF0000]/30' : 'bg-[#E5E7EB]/30 text-[#1A1A1A] opacity-40 cursor-not-allowed'}`}
+            whileHover={selectedFile ? { scale: 1.02 } : {}}
+            whileTap={selectedFile ? { scale: 0.98 } : {}}
+            disabled={!selectedFile}
+            aria-label={selectedFile ? 'Show YouTube recommendations' : 'Select a document first'}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-[#FF0000]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <span className="relative z-10 tracking-wide">YouTube Videos</span>
+          </motion.button>
 
           <div className="flex items-center space-x-1">
             <motion.button 

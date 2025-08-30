@@ -8,9 +8,10 @@ import LeftPanel from '../LeftPanel';
 import CenterPanel from '../CenterPanel';
 import RightPanel from '../RightPanel';
 import InsightDetailModal from '../../modals/InsightDetailModal';
+import { YouTubeModal } from '../../modals';
 import HeaderBar from './HeaderBar';
 import EmptyState from './EmptyState';
-import { uploadDocuments, findConnections, generateInsights, listDocuments, fetchKeyTakeaway, fetchDidYouKnow, fetchContradictions, fetchExamples, fetchCrossReferences, generatePodcastAudio } from '../../../services/api';
+import { uploadDocuments, findConnections, generateInsights, listDocuments, fetchKeyTakeaway, fetchDidYouKnow, fetchContradictions, fetchExamples, fetchCrossReferences, generatePodcastAudio, recommendYouTube } from '../../../services/api';
 import { getActivePDFs, upsertPDFs, deletePDF } from '../../../utils/pdfDb';
 
 // NOTE: Logic is preserved exactly from original ResultAnalysis.jsx. Only UI sections were extracted.
@@ -110,6 +111,27 @@ const PDFAnalysisWorkspace = () => {
   const [podcastGenerating, setPodcastGenerating] = useState(false);
   const [podcastData, setPodcastData] = useState(null);
   const [podcastError, setPodcastError] = useState(null);
+  const [youtubeOpen, setYouTubeOpen] = useState(false);
+  const [youtubeQuery, setYouTubeQuery] = useState('');
+  const [youtubeLoading, setYouTubeLoading] = useState(false);
+  const [youtubeVideos, setYouTubeVideos] = useState([]);
+  const onOpenYouTube = useCallback(async () => {
+    try {
+      if (!selectedFile) return;
+      const q = (selectedTextContext?.text || selectedText || selectedFile?.name || '').toString().trim();
+      if (!q) return;
+      setYouTubeQuery(q);
+      setYouTubeOpen(true);
+      setYouTubeLoading(true);
+      const vids = await recommendYouTube({ text: q, limit: 10 });
+      setYouTubeVideos(vids || []);
+    } catch (e) {
+      toast.error(e?.message || 'Failed to fetch YouTube videos');
+      setYouTubeVideos([]);
+    } finally {
+      setYouTubeLoading(false);
+    }
+  }, [selectedFile, selectedTextContext, selectedText]);
 
   const centerPanelRef = useRef(null);
   const adobeApisRef = useRef(null);
@@ -593,6 +615,7 @@ const PDFAnalysisWorkspace = () => {
         setRightPanelVisible={setRightPanelVisible}
         handleBackToUpload={handleBackToUpload}
         itemVariants={itemVariants}
+  onOpenYouTube={onOpenYouTube}
       />
 
       <div className="flex-1 flex overflow-hidden">
@@ -659,7 +682,8 @@ const PDFAnalysisWorkspace = () => {
           hasConnectionsResponse={hasConnectionsResponse}
           onNavigateToDocument={handleNavigateToDocument}
         />
-        <InsightDetailModal insight={selectedInsight} isOpen={isModalOpen} onClose={handleCloseModal} />
+  <InsightDetailModal insight={selectedInsight} isOpen={isModalOpen} onClose={handleCloseModal} />
+  <YouTubeModal isOpen={youtubeOpen} onClose={() => setYouTubeOpen(false)} videos={youtubeVideos} query={youtubeQuery} loading={youtubeLoading} />
       </div>
     </motion.div>
   );

@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse
 import os
 import uvicorn
 
-from api import documents, connections, insights, podcast, search, individual_insights
+from api import documents, connections, insights, podcast, search, individual_insights, youtube
 from config import settings
 
 # Create necessary directories
@@ -40,6 +40,7 @@ app.include_router(insights.router, prefix="/api/insights", tags=["insights"])
 app.include_router(individual_insights.router, prefix="/api/individual-insights", tags=["individual-insights"])
 app.include_router(podcast.router, prefix="/api/podcast", tags=["podcast"])
 app.include_router(search.router, prefix="/api/search", tags=["search"])
+app.include_router(youtube.router, prefix="/api/youtube", tags=["youtube"])
 
 # Serve frontend static files (for production deployment)
 if os.path.exists("../frontend/dist"):

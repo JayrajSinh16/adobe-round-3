@@ -432,3 +432,27 @@ export const fetchExamples = async (args) => {
 export const fetchCrossReferences = async (args) => {
   return postIndividualInsight('cross-references', buildIndividualPayload(args));
 };
+
+// YouTube recommendations API
+export const recommendYouTube = async ({ text, limit = 10 }) => {
+  if (!text || String(text).trim().length === 0) {
+    throw new Error('Please provide some text to search');
+  }
+  try {
+    const response = await api.post('/api/youtube/recommend', { text: String(text).trim(), limit });
+    const data = response?.data || {};
+    const links = Array.isArray(data.links) ? data.links : [];
+    // Normalize objects defensively
+    return links.map((v) => ({
+      id: v.id || v.videoId || '',
+      url: v.url || (v.id ? `https://www.youtube.com/watch?v=${v.id}` : ''),
+      title: v.title || 'Untitled',
+      thumbnail: v.thumbnail || v.thumb || '',
+      channelTitle: v.channelTitle || v.channel || '',
+      publishedAt: v.publishedAt || v.date || '',
+    }));
+  } catch (error) {
+    const msg = error.response?.data?.detail || error.response?.data?.message || 'Failed to fetch YouTube recommendations';
+    throw new Error(msg);
+  }
+};
