@@ -22,16 +22,19 @@
 ### One-Command Deployment (Recommended)
 
 ```bash
-# Method 1: Use our deployment script (Recommended)
-./run-jury.sh        # Linux/Mac
-run-jury.bat         # Windows
-
-# Method 2: Direct Docker Compose
-docker-compose up --build
-
-# Method 3: Docker Build & Run
-docker build -t adobe-pdf-platform .
-docker run -p 8080:8080 adobe-pdf-platform
+command 1 : docker build --platform linux/amd64 -t yourimageidentifier .
+command 2 : docker run --rm \
+  -v "${PWD}/credentials:/credentials" \
+  -e ADOBE_EMBED_API_KEY="c0598f2728bf431baecd93928d677adc" \
+  -e LLM_PROVIDER="gemini" \
+  -e GOOGLE_API_KEY="api_key" \
+  -e GEMINI_MODEL="gemini-model" \
+  -e TTS_PROVIDER="azure" \
+  -e AZURE_TTS_KEY="api_key" \
+  -e AZURE_TTS_ENDPOINT="Your_endpoint" \
+  -e AZURE_TTS_REGION="Your_region" \
+  -p 8080:8080 \
+  yourimageidentifier
 ```
 
 ### System Requirements
