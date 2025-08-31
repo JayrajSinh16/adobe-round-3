@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 const FeatureCard = ({ icon, title, description, available = true, comingSoon = false }) => (
   <motion.div
@@ -39,6 +40,7 @@ const StatsCard = ({ number, label, suffix = "" }) => (
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [showAllFeatures, setShowAllFeatures] = useState(false);
 
   const features = [
     {
@@ -49,6 +51,26 @@ export default function LandingPage() {
       ),
       title: "Smart Document Analysis",
       description: "Upload any document and get AI-powered insights, summaries, and key information extraction with advanced NLP processing.",
+      available: true
+    },
+    {
+      icon: (
+        <svg className="w-6 h-6 text-[#DC2626]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+        </svg>
+      ),
+      title: "AI-Powered Document Summary",
+      description: "Generate comprehensive summaries of your PDF documents with key highlights and insights. Export summaries as downloadable PDFs with professional formatting.",
+      available: true
+    },
+    {
+      icon: (
+        <svg className="w-6 h-6 text-[#DC2626]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+      ),
+      title: "AI vs Human Content Detection",
+      description: "Advanced analysis to determine what percentage of your document content is AI-generated versus human-written, with detailed confidence scores and insights.",
       available: true
     },
     {
@@ -77,10 +99,11 @@ export default function LandingPage() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 4V2a1 1 0 011-1h4a1 1 0 011 1v2m-5 0h5M7 4a2 2 0 00-2 2v12a2 2 0 002 2h6a2 2 0 002-2V6a2 2 0 00-2-2M7 4h6M12 10h.01M12 14h.01" />
         </svg>
       ),
-      title: "AI Podcast Generation",
-      description: "Transform your documents into engaging audio podcasts with natural-sounding AI voices and structured content.",
+      title: "Multilingual AI Podcast Generation",
+      description: "Transform your documents into engaging audio podcasts with natural-sounding AI voices supporting multiple languages and structured content delivery.",
       available: true
     },
+    // Additional features that will be shown when "See More" is clicked
     {
       icon: (
         <svg className="w-6 h-6 text-[#DC2626]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -89,7 +112,8 @@ export default function LandingPage() {
       ),
       title: "YouTube Recommendations",
       description: "Get personalized YouTube video recommendations based on your document content and analysis results.",
-      available: true
+      available: true,
+      showMore: true
     },
     {
       icon: (
@@ -99,7 +123,8 @@ export default function LandingPage() {
       ),
       title: "Advanced Search",
       description: "Powerful semantic search capabilities to find specific information across all your analyzed documents.",
-      available: true
+      available: true,
+      showMore: true
     },
     {
       icon: (
@@ -109,7 +134,8 @@ export default function LandingPage() {
       ),
       title: "Analytics Dashboard",
       description: "Comprehensive analytics and visualizations to track document processing metrics and insights over time.",
-      comingSoon: true
+      comingSoon: true,
+      showMore: true
     },
     {
       icon: (
@@ -119,7 +145,8 @@ export default function LandingPage() {
       ),
       title: "Team Collaboration",
       description: "Share insights, collaborate on document analysis, and work together with team members in real-time.",
-      comingSoon: true
+      comingSoon: true,
+      showMore: true
     },
     {
       icon: (
@@ -129,7 +156,8 @@ export default function LandingPage() {
       ),
       title: "AI Chat Assistant",
       description: "Interactive chat with your documents using advanced conversational AI to get instant answers and explanations.",
-      comingSoon: true
+      comingSoon: true,
+      showMore: true
     }
   ];
 
@@ -224,17 +252,36 @@ export default function LandingPage() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <FeatureCard {...feature} />
-              </motion.div>
-            ))}
+            {features
+              .filter(feature => showAllFeatures || !feature.showMore)
+              .map((feature, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <FeatureCard {...feature} />
+                </motion.div>
+              ))}
+          </div>
+
+          {/* See More Button */}
+          <div className="flex justify-center mt-12">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowAllFeatures(!showAllFeatures)}
+              className="bg-white border-2 border-gray-200 text-gray-700 px-8 py-4 rounded-2xl font-semibold text-lg hover:border-[#DC2626] hover:text-[#DC2626] transition-all duration-300 flex items-center space-x-3 shadow-lg hover:shadow-xl"
+            >
+              <span>{showAllFeatures ? 'Show Less' : 'See More Features'}</span>
+              {showAllFeatures ? (
+                <ChevronUp className="w-5 h-5" />
+              ) : (
+                <ChevronDown className="w-5 h-5" />
+              )}
+            </motion.button>
           </div>
         </div>
       </section>
