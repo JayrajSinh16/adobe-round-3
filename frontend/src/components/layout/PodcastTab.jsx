@@ -221,7 +221,7 @@ const PodcastTab = ({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
-            className="bg-white border border-blue-200 rounded-xl p-8 shadow-sm"
+            className="bg-white border border-[#FF0000]/30 rounded-xl p-8 shadow-sm"
           >
             <div className="text-center">
               {/* Simple spinner */}
@@ -231,7 +231,7 @@ const PodcastTab = ({
                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
               >
                 <div className="w-full h-full border-4 border-blue-100 rounded-full" />
-                <div className="absolute top-0 left-0 w-full h-full border-4 border-transparent border-t-blue-600 rounded-full" />
+                <div className="absolute top-0 left-0 w-full h-full border-4 border-transparent border-t-[#B91C1C] rounded-full" />
               </motion.div>
               
               <motion.div

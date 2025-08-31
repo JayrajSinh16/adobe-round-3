@@ -28,7 +28,7 @@ const styleForType = (t) => {
   }
 };
 
-const InsightsTab = ({ onInsightClick, insightsData, insightsError }) => {
+const InsightsTab = ({ onInsightClick, insightsData, insightsError, insightsLoading = false }) => {
   const insights = Array.isArray(insightsData?.insights) ? insightsData.insights : [];
   const hasData = insights.length > 0;
   
@@ -49,7 +49,17 @@ const InsightsTab = ({ onInsightClick, insightsData, insightsError }) => {
         {insightsError && (
           <div className="p-4 border border-red-200 bg-red-50 text-sm text-red-700 rounded-xl">{insightsError}</div>
         )}
-        {!insightsError && !hasData && (
+        {!insightsError && insightsLoading && !hasData && (
+          <div className="p-6 border border-[#DC2626]/20 bg-white text-sm text-[#1A1A1A] rounded-xl flex items-center space-x-3 shadow-sm">
+            <motion.div
+              className="w-5 h-5 rounded-full border-2 border-gray-200 border-t-[#DC2626]"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            />
+            <span className="font-medium">Loading insights...</span>
+          </div>
+        )}
+        {!insightsError && !insightsLoading && !hasData && (
           <div className="p-4 border border-gray-200 bg-gray-50 text-sm text-gray-700 rounded-xl">
             No insights yet. Select text and open the Insights tab.
           </div>

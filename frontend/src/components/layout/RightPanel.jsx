@@ -18,6 +18,7 @@ const RightPanel = ({
   selectedTextContext,
   activeInsightTab,
   analysisLoading,
+  insightsLoading,
   podcastGenerating,
   podcastData,
   podcastError,
@@ -455,6 +456,7 @@ const RightPanel = ({
                       onInsightClick={onInsightClick} 
                       insightsData={insightsData}
                       insightsError={insightsError}
+                      insightsLoading={insightsLoading}
                     />
                   )}
 

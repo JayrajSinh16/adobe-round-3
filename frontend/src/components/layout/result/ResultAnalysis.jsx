@@ -111,6 +111,7 @@ const PDFAnalysisWorkspace = () => {
 
   const [pdfLoading, setPdfLoading] = useState(false);
   const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [insightsLoading, setInsightsLoading] = useState(false);
   const [insightsGenerated, setInsightsGenerated] = useState(false);
   const [podcastGenerating, setPodcastGenerating] = useState(false);
   const [podcastData, setPodcastData] = useState(null);
@@ -354,13 +355,13 @@ const PDFAnalysisWorkspace = () => {
   const forceFreshInsights = useCallback(async () => {
     if (!selectedTextContext || !selectedTextContext.text || !selectedFile) return;
     try {
-      clearInsightsCache(); setAnalysisLoading(true); setInsightsError('');
+      clearInsightsCache(); setAnalysisLoading(true); setInsightsLoading(true); setInsightsError('');
       const serverDocId = getServerDocumentId();
       if (!serverDocId) { throw new Error('Document mapping not found'); }
       const insights = await generateInsights({ selected_text: selectedTextContext.text, document_id: serverDocId, page_number: selectedTextContext.page || 1 });
       setInsightsData(insights || { insights: [], selected_text: '', processing_time: 0 });
     } catch (error) { setInsightsError(error?.message || 'Failed to generate insights'); }
-    finally { setAnalysisLoading(false); }
+    finally { setAnalysisLoading(false); setInsightsLoading(false); }
   }, [selectedTextContext, selectedFile, getServerDocumentId, clearInsightsCache]);
 
   React.useEffect(() => {
@@ -368,7 +369,7 @@ const PDFAnalysisWorkspace = () => {
     (async () => {
       if (!selectedTextContext || !selectedFile) return;
       setPodcastData(null); setPodcastError(null); setPodcastGenerating(false);
-      try {
+  try {
         setConnectionsError(''); setAnalysisLoading(true); setHasConnectionsResponse(false);
         const serverDocId = getServerDocumentId(); if (!serverDocId) { throw new Error('Document mapping not found for connections'); }
         const payload = { selected_text: selectedTextContext.text, current_document_id: serverDocId, current_page: selectedTextContext.page || 1, context_before: '', context_after: '' };
@@ -384,10 +385,12 @@ const PDFAnalysisWorkspace = () => {
         const serverDocId2 = getServerDocumentId(); if (!serverDocId2) return; const page = selectedTextContext.page || 1;
         const cache = getInsightsCache(); const cacheKey = makeInsightsKey(serverDocId2, page, selectedTextContext.text); const cachedEntry = cache[cacheKey];
         if (cachedEntry && textsMatch(cachedEntry.selected_text, selectedTextContext.text)) { setInsightsData(cachedEntry); setInsightsError(''); return; }
+        setInsightsLoading(true);
         const insights = await generateInsights({ selected_text: selectedTextContext.text, document_id: serverDocId2, page_number: page });
         if (cancelled) return; setInsightsData(insights || { insights: [], selected_text: '', processing_time: 0 }); setInsightsError('');
         const next = { ...cache, [cacheKey]: { ...insights, __ts: Date.now() } }; setInsightsCache(next);
       } catch (ie) { if (cancelled) return; setInsightsError(ie?.message || 'Failed to generate insights'); }
+      finally { if (!cancelled) setInsightsLoading(false); }
     })();
     return () => { cancelled = true; };
   }, [selectedTextContext, selectedFile, getServerDocumentId]);
@@ -435,7 +438,12 @@ const PDFAnalysisWorkspace = () => {
     });
   }, [activeTabId]);
 
-  const handleBackToUpload = useCallback(() => { navigate('/upload'); }, [navigate]);
+  const handleBackToUpload = useCallback(() => {
+    const msg = 'You are about to return to the Upload page. This may require reselecting your documents and can clear the current analysis view. Do you want to continue?';
+    if (window.confirm(msg)) {
+      navigate('/upload');
+    }
+  }, [navigate]);
   const toggleLeftPanel = useCallback(() => { setLeftPanelCollapsed(!leftPanelCollapsed); }, [leftPanelCollapsed]);
   const handlePDFZoom = useCallback((direction) => {
     const zoomLevels = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
@@ -691,6 +699,7 @@ const PDFAnalysisWorkspace = () => {
           selectedTextContext={selectedTextContext}
           activeInsightTab={activeInsightTab}
           analysisLoading={analysisLoading}
+          insightsLoading={insightsLoading}
           podcastGenerating={podcastGenerating}
           podcastData={podcastData}
           podcastError={podcastError}
