@@ -21,6 +21,8 @@ const LeftPanel = ({
   onFileDelete,
   setRightPanelVisible, // Add this prop to control right panel
   onNavigateToDocument, // Add this prop for PDF navigation
+  onAIDetection, // Add this prop for AI detection
+  onSummaryGenerate, // Add this prop for summary generation
 }) => {
   const [visitedFiles, setVisitedFiles] = useState(new Set());
   const fileInputRef = useRef(null);
@@ -231,6 +233,8 @@ const LeftPanel = ({
                   visitedFiles={visitedFiles}
                   leftPanelCollapsed={leftPanelCollapsed}
                   onFileDelete={handleFileDelete}
+                  onAIDetection={onAIDetection}
+                  onSummaryGenerate={onSummaryGenerate}
                 />
               ) : (
                 <SemanticSearch
@@ -261,6 +265,8 @@ const LeftPanel = ({
                 visitedFiles={visitedFiles}
                 leftPanelCollapsed={leftPanelCollapsed}
                 onFileDelete={handleFileDelete}
+                onAIDetection={onAIDetection}
+                onSummaryGenerate={onSummaryGenerate}
               />
             </div>
           )}

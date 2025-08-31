@@ -8,6 +8,8 @@ import LeftPanel from '../LeftPanel';
 import CenterPanel from '../CenterPanel';
 import RightPanel from '../RightPanel';
 import InsightDetailModal from '../../modals/InsightDetailModal';
+import AIDetectionModal from '../../modals/AIDetectionModal';
+import SummaryModal from '../../modals/SummaryModal';
 import { YouTubeModal } from '../../modals';
 import HeaderBar from './HeaderBar';
 import EmptyState from './EmptyState';
@@ -44,6 +46,8 @@ const PDFAnalysisWorkspace = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pdfZoom, setPdfZoom] = useState(1.0);
+  const [aiDetectionModal, setAiDetectionModal] = useState({ isOpen: false, file: null });
+  const [summaryModal, setSummaryModal] = useState({ isOpen: false, file: null });
 
   const [openTabs, setOpenTabs] = useState(() => {
     if (!uploadedFiles || uploadedFiles.length === 0) return [];
@@ -604,6 +608,30 @@ const PDFAnalysisWorkspace = () => {
   const formatReadingTime = (minutes) => `${minutes}m read`;
   const handleSearchChange = useCallback((e) => { setSearchTerm(e.target.value); }, []);
 
+  // Handle AI detection modal
+  const handleAIDetection = useCallback((file) => {
+    setAiDetectionModal({ isOpen: true, file });
+  }, []);
+
+  const handleCloseAIDetection = useCallback(() => {
+    setAiDetectionModal({ isOpen: false, file: null });
+  }, []);
+
+  // Handle summary generation modal
+  const handleSummaryGenerate = useCallback((file) => {
+    setSummaryModal({ isOpen: true, file });
+  }, []);
+
+  const handleCloseSummary = useCallback(() => {
+    setSummaryModal({ isOpen: false, file: null });
+  }, []);
+
+  const handleAIDetectionComplete = useCallback((results) => {
+    console.log('AI Detection Results:', results);
+    // You can add any additional handling here, like storing results or showing notifications
+    toast.success('AI detection analysis completed!');
+  }, []);
+
   if (!files || files.length === 0) { return <EmptyState handleBackToUpload={handleBackToUpload} />; }
 
   return (
@@ -636,6 +664,8 @@ const PDFAnalysisWorkspace = () => {
           onFileUpload={handleFileUpload}
           onFileDelete={handleFileDelete}
           onNavigateToDocument={handleNavigateToDocument}
+          onAIDetection={handleAIDetection}
+          onSummaryGenerate={handleSummaryGenerate}
         />
 
         <CenterPanel
@@ -684,6 +714,22 @@ const PDFAnalysisWorkspace = () => {
         />
   <InsightDetailModal insight={selectedInsight} isOpen={isModalOpen} onClose={handleCloseModal} />
   <YouTubeModal isOpen={youtubeOpen} onClose={() => setYouTubeOpen(false)} videos={youtubeVideos} query={youtubeQuery} loading={youtubeLoading} />
+  <AIDetectionModal
+    isOpen={aiDetectionModal.isOpen}
+    onClose={handleCloseAIDetection}
+    file={aiDetectionModal.file}
+    onDetectionComplete={handleAIDetectionComplete}
+  />
+  <SummaryModal
+    isOpen={summaryModal.isOpen}
+    onClose={handleCloseSummary}
+    file={summaryModal.file}
+  />
+  <SummaryModal
+    isOpen={summaryModal.isOpen}
+    onClose={handleCloseSummary}
+    file={summaryModal.file}
+  />
       </div>
     </motion.div>
   );

@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Search, FileText, CheckCircle2, SortDesc, Trash2
+  Search, FileText, CheckCircle2, SortDesc, Trash2, MoreVertical, Brain, FileText as SummaryIcon
 } from 'lucide-react';
 
 const FilenameSearch = ({
@@ -14,18 +14,62 @@ const FilenameSearch = ({
   formatTimestamp,
   visitedFiles,
   leftPanelCollapsed,
-  onFileDelete
+  onFileDelete,
+  onAIDetection, // Add this prop for AI detection
+  onSummaryGenerate // Add this prop for summary generation
 }) => {
   // Local state for filename search
   const [sortBy, setSortBy] = useState('recent');
   const [filterBy, setFilterBy] = useState('all');
+  const [openDropdowns, setOpenDropdowns] = useState(new Set());
+
+  // Handle dropdown toggle
+  const toggleDropdown = useCallback((fileId, e) => {
+    e.stopPropagation();
+    setOpenDropdowns(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(fileId)) {
+        newSet.delete(fileId);
+      } else {
+        newSet.clear(); // Close all other dropdowns
+        newSet.add(fileId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  // Close dropdowns when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = () => setOpenDropdowns(new Set());
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  // Handle AI detection
+  const handleAIDetection = useCallback((e, file) => {
+    e.stopPropagation();
+    if (onAIDetection) {
+      onAIDetection(file);
+    }
+    setOpenDropdowns(new Set());
+  }, [onAIDetection]);
+
+  // Handle summary generation
+  const handleSummaryGenerate = useCallback((e, file) => {
+    e.stopPropagation();
+    if (onSummaryGenerate) {
+      onSummaryGenerate(file);
+    }
+    setOpenDropdowns(new Set());
+  }, [onSummaryGenerate]);
 
   // Handle file deletion
   const handleDeleteFile = useCallback((e, fileId) => {
-    e.stopPropagation(); // Prevent file selection when clicking delete
+    e.stopPropagation();
     if (onFileDelete) {
       onFileDelete(fileId);
     }
+    setOpenDropdowns(new Set());
   }, [onFileDelete]);
 
   // Sophisticated sorting logic for filename search
@@ -141,11 +185,11 @@ const FilenameSearch = ({
                       }
                     }}
                     exit={{ opacity: 0, scale: 0.95, y: -13 }}
-                    className={`group relative p-4 rounded-xl cursor-pointer transition-all duration-300 border overflow-hidden ${
+                    className={`group relative p-4 rounded-xl cursor-pointer transition-all duration-300 border ${
                       isSelected
                         ? 'bg-[#DC2626]/5 border-[#DC2626]/20 shadow-md'
                         : 'bg-white/80 hover:bg-white border-[#E5E7EB]/50 hover:border-[#DC2626]/20 hover:shadow-md'
-                    }`}
+                    } ${openDropdowns.has(file.id) ? 'z-50' : ''}`}
                     onClick={() => handleFileSelectWithVisit(file)}
                     whileHover={{ 
                       y: -2,
@@ -204,15 +248,67 @@ const FilenameSearch = ({
                         {/* File Metadata */}
                         <div className="flex items-center justify-between text-[13px] text-[#6B7280] mb-2">
                           <span className="font-medium">{formatFileSize(file.size)}</span>
-                          <motion.button
-                            onClick={(e) => handleDeleteFile(e, file.id)}
-                            className="p-1 rounded-md hover:bg-red-100 hover:text-red-600 transition-all duration-200 group/delete"
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            aria-label={`Delete ${file.name}`}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </motion.button>
+                          
+                          {/* Dropdown Menu */}
+                          <div className="relative">
+                            <motion.button
+                              onClick={(e) => toggleDropdown(file.id, e)}
+                              className={`p-2 rounded-lg transition-all duration-200 group/menu ${
+                                openDropdowns.has(file.id) 
+                                  ? 'bg-[#DC2626] text-white shadow-md' 
+                                  : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
+                              }`}
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              aria-label={`Options for ${file.name}`}
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </motion.button>
+
+                            {/* Dropdown Content */}
+                            <AnimatePresence>
+                              {openDropdowns.has(file.id) && (
+                                <motion.div
+                                  initial={{ opacity: 0, scale: 0.95, y: -5 }}
+                                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                                  exit={{ opacity: 0, scale: 0.95, y: -5 }}
+                                  transition={{ duration: 0.15 }}
+                                  className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-[100] min-w-[160px]"
+                                  style={{
+                                    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15), 0 4px 6px rgba(0, 0, 0, 0.1)'
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <div className="py-1 ">
+                                     <div className="mx-2 h-px bg-gray-100"></div>
+                                    <button
+                                      onClick={(e) => handleDeleteFile(e, file.id)}
+                                      className="w-full pl-3 py-2 text-left text-xs hover:bg-red-50 text-red-600 flex items-center space-x-2 transition-colors group/delete"
+                                    >
+                                      <Trash2 className="w-4 h-4 group-hover/delete:scale-110 transition-transform" />
+                                      <span className="font-medium">Delete</span>
+                                    </button>
+                                    
+                                    <button
+                                      onClick={(e) => handleSummaryGenerate(e, file)}
+                                      className="w-full px-2 py-2 text-left text-xs hover:bg-green-50 flex justify-center items-center space-x-2 transition-colors group/summary"
+                                    >
+                                      <SummaryIcon className="w-4 h-4 text-green-600 group-hover/summary:scale-110 transition-transform" />
+                                      <span className="font-medium">Generate Summary</span>
+                                    </button>
+                                   <button
+                                      onClick={(e) => handleAIDetection(e, file)}
+                                      className="w-full pl-3 py-2 text-left text-xs hover:bg-blue-50 flex items-center space-x-2 transition-colors group/ai"
+                                    >
+                                      <Brain className="w-4 h-4 text-blue-600 group-hover/ai:scale-110 transition-transform" />
+                                      <span className="font-medium">AI vs Human</span>
+                                    </button>
+                                    
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
                         </div>
                       </div>
                     </div>
