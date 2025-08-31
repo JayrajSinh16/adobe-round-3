@@ -58,12 +58,20 @@ export default function YouTubeModal({ isOpen, onClose, videos = [], query = '',
                       rel="noreferrer"
                       className="group block rounded-2xl border border-white/50 overflow-hidden hover:shadow-[0_10px_30px_rgba(220,38,38,0.15)] transition-shadow bg-white"
                     >
-                      <div className="aspect-video w-full bg-gray-100 overflow-hidden">
+                      <div className="aspect-video w-full bg-gray-100 overflow-hidden relative">
                         {v.thumbnail ? (
                           <img src={v.thumbnail} alt={v.title || 'Video'} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No thumbnail</div>
                         )}
+                        {/* Play button overlay */}
+                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm">
+                            <svg className="w-8 h-8 text-[#DC2626] ml-1" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z"/>
+                            </svg>
+                          </div>
+                        </div>
                       </div>
                       <div className="p-4">
                         <div className="text-sm font-semibold text-gray-900 line-clamp-2">{v.title || 'Untitled'}</div>
