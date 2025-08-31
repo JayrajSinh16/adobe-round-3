@@ -56,10 +56,28 @@ def generate_audio(text: str, speaker: str = "default", language: str = "en") ->
                 )
                 
                 # Set voice based on speaker with language-aware mapping (common locales)
-                lang = (language or "en").lower()
+                lang_raw = (language or "en").strip()
+                lang = lang_raw.lower()
                 # Normalize to locale codes Azure expects
-                # Map short codes to locales
-                locale_map = {
+                # Accept human-readable names and short codes
+                name_to_locale = {
+                    "english": "en-US",
+                    "spanish": "es-ES",
+                    "castilian": "es-ES",
+                    "hindi": "hi-IN",
+                    "french": "fr-FR",
+                    "german": "de-DE",
+                    "japanese": "ja-JP",
+                    "chinese": "zh-CN",
+                    "mandarin": "zh-CN",
+                    "arabic": "ar-SA",
+                    "italian": "it-IT",
+                    "portuguese": "pt-BR",
+                    "brazilian portuguese": "pt-BR",
+                    "korean": "ko-KR",
+                    "russian": "ru-RU",
+                }
+                code_to_locale = {
                     "en": "en-US",
                     "es": "es-ES",
                     "fr": "fr-FR",
@@ -67,8 +85,19 @@ def generate_audio(text: str, speaker: str = "default", language: str = "en") ->
                     "hi": "hi-IN",
                     "ja": "ja-JP",
                     "zh": "zh-CN",
+                    "pt": "pt-BR",
+                    "it": "it-IT",
+                    "ru": "ru-RU",
+                    "ar": "ar-SA",
+                    "ko": "ko-KR",
                 }
-                locale = locale_map.get(lang, lang if '-' in lang else "en-US")
+                if '-' in lang and len(lang.split('-')[0]) == 2:
+                    # Already looks like a locale
+                    locale = lang_raw
+                elif lang in name_to_locale:
+                    locale = name_to_locale[lang]
+                else:
+                    locale = code_to_locale.get(lang, "en-US")
 
                 female_default = {
                     "en-US": "en-US-JennyNeural",
@@ -78,6 +107,11 @@ def generate_audio(text: str, speaker: str = "default", language: str = "en") ->
                     "hi-IN": "hi-IN-SwaraNeural",
                     "ja-JP": "ja-JP-NanamiNeural",
                     "zh-CN": "zh-CN-XiaoxiaoNeural",
+                    "pt-BR": "pt-BR-FranciscaNeural",
+                    "it-IT": "it-IT-ElsaNeural",
+                    "ru-RU": "ru-RU-DariyaNeural",
+                    "ar-SA": "ar-SA-ZariyahNeural",
+                    "ko-KR": "ko-KR-SunHiNeural",
                 }.get(locale, "en-US-JennyNeural")
 
                 male_default = {
@@ -88,6 +122,11 @@ def generate_audio(text: str, speaker: str = "default", language: str = "en") ->
                     "hi-IN": "hi-IN-MadhurNeural",
                     "ja-JP": "ja-JP-KeitaNeural",
                     "zh-CN": "zh-CN-YunxiNeural",
+                    "pt-BR": "pt-BR-AntonioNeural",
+                    "it-IT": "it-IT-DiegoNeural",
+                    "ru-RU": "ru-RU-DmitryNeural",
+                    "ar-SA": "ar-SA-HamedNeural",
+                    "ko-KR": "ko-KR-InJoonNeural",
                 }.get(locale, "en-US-GuyNeural")
 
                 # Map specific speakers to gendered defaults
@@ -97,6 +136,13 @@ def generate_audio(text: str, speaker: str = "default", language: str = "en") ->
                     selected_voice = male_default
                 else:
                     selected_voice = female_default
+                # Be explicit: set both language and voice to reduce mis-detections
+                try:
+                    # Some SDK versions allow setting synthesis language directly
+                    speech_config.speech_synthesis_language = locale
+                except Exception:
+                    # If property not available, continue with voice only
+                    pass
                 speech_config.speech_synthesis_voice_name = selected_voice
                 
                 logger.info(f"🎤 Selected Azure voice: {selected_voice} for speaker: {speaker}")

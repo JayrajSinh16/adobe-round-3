@@ -552,24 +552,49 @@ Remember: Respond with ONLY the JSON array, no other text."""
             target = (language or "en").lower()
             if target.startswith("en"):
                 return texts
-            # Use a compact prompt focused only on translation
+            # Use a compact prompt focused only on translation (dedicated lightweight client)
             import json as _json
+            from .core_llm import get_llm_client as _get
+            translator = _get("default")
             system = f"You are a precise translator. Translate every item to {language}. Output ONLY a JSON array of translated strings."
             user = "Translate these strings: " + _json.dumps(texts, ensure_ascii=False)
-            resp = self.client.generate(prompt=user, max_tokens=800, temperature=0.2, system_prompt=system).strip()
+            resp = translator.generate(prompt=user, max_tokens=800, temperature=0.2, system_prompt=system).strip()
             if resp.startswith('```json'):
                 resp = resp[7:]
             elif resp.startswith('```'):
                 resp = resp[3:]
             if resp.endswith('```'):
                 resp = resp[:-3]
-            parsed = _json.loads(resp)
+            parsed = None
+            try:
+                parsed = _json.loads(resp)
+            except Exception:
+                parsed = None
             if isinstance(parsed, list) and all(isinstance(x, str) for x in parsed) and len(parsed) == len(texts):
-                return parsed
-            return texts
+                if not target.startswith("en"):
+                    en_like = sum(1 for s in parsed if _looks_english(s))
+                    # Accept if most items don't look English; else retry item-wise
+                    if en_like <= max(1, len(parsed) // 3):
+                        return parsed
+                else:
+                    return parsed
+            # Retry per-item to salvage partial failures
+            out: List[str] = []
+            for s in texts:
+                try:
+                    u = "Translate this to {lang}: ".format(lang=language) + _json.dumps(s, ensure_ascii=False)
+                    r = translator.generate(prompt=u, max_tokens=200, temperature=0.1, system_prompt=f"Translate to {language}. Output ONLY the translated text with no quotes.").strip()
+                    # Clean simple wrappers
+                    if r.startswith('```'):
+                        r = r.strip('`')
+                    r = r.strip().strip('"')
+                    out.append(r if r else s)
+                except Exception:
+                    out.append(s)
+            return out
         except Exception:
             return texts
-    
+
     def _get_fallback_script(self, format: str, selected_text: str, language: str = "en") -> List[Dict]:
         """Get basic fallback script if JSON parsing fails. Ensures language via translation."""
         if format == "podcast":
@@ -592,7 +617,7 @@ Remember: Respond with ONLY the JSON array, no other text."""
         except Exception:
             pass
         return base
-    
+
     def _get_extended_fallback_script(self, format: str, selected_text: str, insights: List[Dict], max_duration_minutes: float = 4.5, language: str = "en") -> List[Dict]:
         """Get comprehensive fallback script with natural conversation and strict time limits. Ensures language via translation."""
         if format == "podcast":
@@ -702,7 +727,7 @@ Remember: Respond with ONLY the JSON array, no other text."""
             except Exception:
                 pass
             return base
-    
+
     def _format_insights_for_prompt(self, insights: List[Dict]) -> str:
         """Format insights for LLM prompt"""
         if not insights:
@@ -728,6 +753,18 @@ Confidence: {confidence}
             formatted_insights.append(formatted_insight.strip())
         
         return '\n\n'.join(formatted_insights)
+
+def _looks_english(s: str) -> bool:
+    try:
+        # Heuristic: ratio of ASCII letters vs non-ASCII
+        if not s:
+            return True
+        ascii_letters = sum(1 for ch in s if ord(ch) < 128 and ch.isalpha())
+        non_ascii = sum(1 for ch in s if ord(ch) >= 128)
+        # Many target languages will introduce non-ascii; treat as non-English if non-ascii prominent
+        return non_ascii < max(3, len(s) * 0.02) and ascii_letters > len(s) * 0.3
+    except Exception:
+        return True
 
 
 # Task-specific instances
