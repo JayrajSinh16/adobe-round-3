@@ -11,7 +11,7 @@ class CrossReferencesGenerator:
     """Handles cross-references generation with innovation catalysts and patterns."""
     
     def __init__(self):
-        self.client = get_llm_client()
+        self.client = get_llm_client("insights")  # Dedicated insights client
     
     def generate_cross_references(self, selected_text: str, document_id: str,
                                 page_no: int, original_insight: Respond,

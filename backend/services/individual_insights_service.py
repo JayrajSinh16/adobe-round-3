@@ -17,7 +17,7 @@ from .individual_insights import (
 
 class IndividualInsightsService:
     def __init__(self):
-        self.client = get_llm_client()
+        self.client = get_llm_client("insights")  # Dedicated insights client
         
         # Initialize modular components
         self.context_manager = ContextManager()

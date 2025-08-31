@@ -11,7 +11,7 @@ class ExamplesGenerator:
     """Handles examples generation with implementation approaches and challenges."""
     
     def __init__(self):
-        self.client = get_llm_client()
+        self.client = get_llm_client("insights")  # Dedicated insights client
     
     def generate_examples(self, selected_text: str, document_id: str,
                          page_no: int, original_insight: Respond,

@@ -16,7 +16,7 @@ from .connection.utils import ConnectionUtils
 
 class ConnectionService:
     def __init__(self):
-        self.llm_client = get_llm_client()
+        self.llm_client = get_llm_client("connections")  # Dedicated connections client
         
         # Initialize modular components
         self.context_builder = ContextBuilder()

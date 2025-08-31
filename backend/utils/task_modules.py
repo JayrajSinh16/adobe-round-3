@@ -72,7 +72,7 @@ class SummaryGenerator:
     """Handles document summarization tasks"""
     
     def __init__(self):
-        self.client = get_llm_client()
+        self.client = get_llm_client("default")  
     
     def generate_snippet_summary(self, text: str, limit: int = 2) -> str:
         """Generate a concise summary of the given text"""
@@ -119,7 +119,7 @@ class InsightAnalyzer:
     """Handles insight generation and analysis tasks"""
     
     def __init__(self):
-        self.client = get_llm_client()
+        self.client = get_llm_client("insights")  # Dedicated insights client
         self.system_prompts = {
             "key_takeaways": """You are an expert content analyst with access to a multi-document library. Your PRIMARY task is to synthesize information from MULTIPLE PDFs to provide comprehensive takeaways. You must actively analyze the selected text in relation to information from different documents in the library.
 
@@ -270,7 +270,7 @@ class ContentGenerator:
     """Handles content generation tasks like podcast scripts"""
     
     def __init__(self):
-        self.client = get_llm_client()
+        self.client = get_llm_client("podcast")  # Dedicated podcast client
     
     def generate_podcast_script(self, selected_text: str, insights: List[Dict], format: str = "podcast", max_duration_minutes: float = 4.5, language: str = "en") -> List[Dict]:
         """Generate natural, informative podcast script with human-like expressions and strict time limits"""

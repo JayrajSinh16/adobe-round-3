@@ -11,7 +11,7 @@ class KeyTakeawayGenerator:
     """Handles key takeaway insight generation."""
     
     def __init__(self):
-        self.client = get_llm_client()
+        self.client = get_llm_client("insights")  # Dedicated insights client
     
     def generate_key_takeaway(self, selected_text: str, document_id: str, 
                             page_no: int, original_insight: Respond,
