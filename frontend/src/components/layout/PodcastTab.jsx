@@ -10,16 +10,6 @@ import {
   Loader2
 } from 'lucide-react';
 
-/**
- * PODCAST TAB COMPONENT
- * 
- * Features:
- * - Initial generator state
- * - 3-second loading animation
- * - Premium audio player with waveform visualization
- * - Generate new podcast functionality
- * - Minimal and elegant UX
- */
 const PodcastTab = ({ 
   podcastGenerating, 
   podcastData,
@@ -231,21 +221,17 @@ const PodcastTab = ({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
-            className="relative bg-gradient-to-br from-[#DC2626]/5 via-[#DC2626]/3 to-transparent border border-[#DC2626]/20 rounded-2xl p-12 overflow-hidden"
-            style={{
-              backdropFilter: 'blur(15px) saturate(150%)',
-              boxShadow: '0 8px 32px rgba(220, 38, 38, 0.08)'
-            }}
+            className="bg-white border border-blue-200 rounded-xl p-8 shadow-sm"
           >
-            <div className="text-center relative z-10">
-              {/* Elegant spinner */}
+            <div className="text-center">
+              {/* Simple spinner */}
               <motion.div 
                 className="w-16 h-16 mx-auto mb-6 relative"
                 animate={{ rotate: 360 }}
                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
               >
-                <div className="w-full h-full border-4 border-[#DC2626]/20 rounded-full" />
-                <div className="absolute top-0 left-0 w-full h-full border-4 border-transparent border-t-[#DC2626] rounded-full" />
+                <div className="w-full h-full border-4 border-blue-100 rounded-full" />
+                <div className="absolute top-0 left-0 w-full h-full border-4 border-transparent border-t-blue-600 rounded-full" />
               </motion.div>
               
               <motion.div
@@ -253,10 +239,10 @@ const PodcastTab = ({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                <h3 className="text-xl font-bold text-[#1A1A1A] mb-3">
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">
                   Creating Your Podcast
                 </h3>
-                <p className="text-[#1A1A1A] opacity-60 max-w-sm mx-auto leading-relaxed">
+                <p className="text-gray-600 max-w-sm mx-auto">
                   AI is analyzing your content and generating an engaging audio discussion...
                 </p>
               </motion.div>
@@ -269,11 +255,11 @@ const PodcastTab = ({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
-            className="relative bg-gradient-to-br from-red-50 via-red-25 to-transparent border border-red-200 rounded-2xl p-8 overflow-hidden"
+            className="bg-white border border-red-200 rounded-xl p-8 shadow-sm"
           >
-            <div className="text-center relative z-10">
+            <div className="text-center">
               <motion.div 
-                className="w-16 h-16 mx-auto mb-6 bg-red-100 rounded-full flex items-center justify-center"
+                className="w-16 h-16 mx-auto mb-6 bg-red-100 rounded-xl flex items-center justify-center"
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.1, type: "spring" }}
@@ -281,16 +267,16 @@ const PodcastTab = ({
                 <AlertCircle className="w-8 h-8 text-red-600" />
               </motion.div>
               
-              <h3 className="text-xl font-bold text-gray-900 mb-3">
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
                 Generation Failed
               </h3>
-              <p className="text-gray-600 max-w-sm mx-auto leading-relaxed mb-6">
+              <p className="text-gray-600 max-w-sm mx-auto mb-6">
                 {error || 'Something went wrong while generating your podcast. Please try again.'}
               </p>
               
               <motion.button
                 onClick={handlePodcastGeneration}
-                className="bg-gradient-to-r from-[#DC2626] to-[#B91C1C] text-white font-medium py-3 px-6 rounded-xl hover:shadow-lg transition-all duration-300 flex items-center space-x-2 mx-auto"
+                className="bg-[#DC2626] text-white font-medium py-3 px-6 rounded-lg hover:bg-[#B91C1C] transition-colors duration-200 flex items-center space-x-2 mx-auto"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -312,30 +298,26 @@ const PodcastTab = ({
               initial={{ opacity: 0, y: 20, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.5, ease: premiumEasing }}
-              className="relative bg-gradient-to-br from-white via-[#FAFAF9]/80 to-[#F3F4F6]/50 border border-[#E5E7EB]/30 rounded-2xl overflow-hidden"
-              style={{
-                backdropFilter: 'blur(15px) saturate(120%)',
-                boxShadow: '0 8px 32px rgba(26, 26, 26, 0.08)'
-              }}
+              className="bg-white border border-gray-200 rounded-xl shadow-sm"
             >
               {/* Podcast Header */}
-              <div className="p-6 border-b border-[#E5E7EB]/20">
+              <div className="p-6 border-b border-gray-200">
                   <div className="flex items-center space-x-4">
                     <motion.div 
-                      className="w-12 h-12 bg-gradient-to-r from-[#DC2626] to-[#B91C1C] rounded-xl flex items-center justify-center"
+                      className="w-12 h-12 bg-[#DC2626] rounded-xl flex items-center justify-center"
                       whileHover={{ scale: 1.05 }}
                     >
                       <Mic className="w-6 h-6 text-white" />
                     </motion.div>
                     <div className="flex-1">
-                      <h3 className="text-lg font-bold text-[#1A1A1A] mb-1">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
                         AI Analysis Discussion
                       </h3>
-                      <p className="text-sm text-[#1A1A1A] opacity-60">
+                      <p className="text-sm text-gray-600">
                         Generated from your document insights • {duration ? formatTime(duration) : '--:--'}
                       </p>
                     </div>
-                    <div className="text-xs text-[#1A1A1A] opacity-40 font-medium">
+                    <div className="text-xs text-gray-500 font-medium">
                       Just now
                     </div>
                   </div>
@@ -353,11 +335,11 @@ const PodcastTab = ({
                   />
                 )}
 
-                {/* Premium Audio Player */}
+                {/* Audio Player */}
                 <div className="p-6">
                   <div className="relative">
                     {/* Waveform visualization placeholder */}
-                    <div className="flex items-center justify-center space-x-1 h-16 mb-6 bg-[#FAFAF9]/60 rounded-xl border border-[#E5E7EB]/20">
+                    <div className="flex items-center justify-center space-x-1 h-16 mb-6 bg-gray-50 rounded-xl border border-gray-100">
                       {Array.from({ length: 50 }).map((_, i) => (
                         <motion.div
                           key={i}
@@ -383,7 +365,7 @@ const PodcastTab = ({
                       <motion.button
                         onClick={togglePlayPause}
                         disabled={!podcastUrl}
-                        className="w-12 h-12 bg-gradient-to-r from-[#DC2626] to-[#B91C1C] rounded-full flex items-center justify-center text-white shadow-lg group disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-12 h-12 bg-[#DC2626] rounded-full flex items-center justify-center text-white shadow-md hover:bg-[#B91C1C] transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         whileHover={{ scale: podcastUrl ? 1.05 : 1 }}
                         whileTap={{ scale: podcastUrl ? 0.95 : 1 }}
                       >
@@ -397,17 +379,17 @@ const PodcastTab = ({
                       {/* Progress Bar */}
                       <div className="flex-1">
                         <div 
-                          className="relative h-2 bg-[#E5E7EB]/40 rounded-full overflow-hidden cursor-pointer"
+                          className="relative h-2 bg-gray-200 rounded-full overflow-hidden cursor-pointer"
                           onClick={handleProgressClick}
                         >
                           <motion.div 
-                            className="absolute left-0 top-0 h-full bg-gradient-to-r from-[#DC2626] to-[#B91C1C] rounded-full"
+                            className="absolute left-0 top-0 h-full bg-[#DC2626] rounded-full"
                             style={{ 
                               width: duration > 0 ? `${(currentTime / duration) * 100}%` : '0%' 
                             }}
                           />
                         </div>
-                        <div className="flex justify-between text-xs text-[#1A1A1A] opacity-60 mt-2">
+                        <div className="flex justify-between text-xs text-gray-600 mt-2">
                           <span>{formatTime(currentTime)}</span>
                           <span>{formatTime(duration)}</span>
                         </div>
@@ -418,7 +400,7 @@ const PodcastTab = ({
                         <motion.button
                           onClick={handleDownload}
                           disabled={!podcastUrl || isDownloading}
-                          className="p-2 rounded-lg hover:bg-[#FAFAF9] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group/download"
+                          className="p-2 rounded-lg hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                           whileHover={{ scale: podcastUrl && !isDownloading ? 1.1 : 1 }}
                           title={isDownloading ? "Downloading..." : "Download Podcast"}
                         >
@@ -430,7 +412,7 @@ const PodcastTab = ({
                               <Loader2 className="w-4 h-4 text-[#DC2626]" />
                             </motion.div>
                           ) : (
-                            <Download className="w-4 h-4 text-[#1A1A1A] opacity-60 group-hover/download:opacity-100 group-hover/download:text-[#DC2626] transition-all duration-300" />
+                            <Download className="w-4 h-4 text-gray-600 hover:text-[#DC2626] transition-colors duration-200" />
                           )}
                         </motion.button>
                       </div>
@@ -444,68 +426,67 @@ const PodcastTab = ({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.4 }}
-              className="relative bg-gradient-to-br from-[#DC2626]/5 via-[#DC2626]/3 to-transparent border border-[#DC2626]/20 rounded-2xl p-6 overflow-hidden group"
-              style={{
-                backdropFilter: 'blur(15px) saturate(150%)',
-                boxShadow: '0 4px 20px rgba(220, 38, 38, 0.06)'
-              }}
+              className="relative bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow duration-300"
             >
-              <div className="relative z-10 flex items-center justify-between">
+              <div className="space-y-4">
+                {/* Header */}
                 <div className="flex items-center space-x-3">
-                  <motion.div 
-                    className="w-10 h-10 bg-gradient-to-r from-[#DC2626] to-[#B91C1C] rounded-xl flex items-center justify-center"
-                    whileHover={{ scale: 1.05, rotate: 5 }}
-                    transition={{ duration: 0.3 }}
-                  >
+                  <div className="w-10 h-10 bg-[#DC2626] rounded-lg flex items-center justify-center flex-shrink-0">
                     <Mic className="w-5 h-5 text-white" />
-                  </motion.div>
-                  <div>
-                    <h4 className="font-bold text-[#1A1A1A] text-sm mb-1">
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-gray-900 text-base">
                       Generate New Podcast
                     </h4>
-                    <p className="text-xs text-[#1A1A1A] opacity-60">
+                    <p className="text-sm text-gray-600 mt-1">
                       Create another AI discussion from your content
                     </p>
                   </div>
                 </div>
                 
-                {/* Inline Language Selector + Generate Button */}
-                <div className="flex items-center gap-3">
-                  <div className="hidden sm:block">
-                    <label className="block text-[11px] font-medium text-[#1A1A1A] opacity-60 mb-0.5">Language</label>
-                    <select
-                      value={language}
-                      onChange={(e) => setLanguage(e.target.value)}
-                      className="border border-[#E5E7EB]/60 rounded-md py-1.5 px-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30"
-                    >
-                      <option value="en">English</option>
-                      <option value="es">Spanish</option>
-                      <option value="fr">French</option>
-                      <option value="de">German</option>
-                      <option value="hi">Hindi</option>
-                      <option value="ja">Japanese</option>
-                      <option value="zh">Chinese</option>
-                    </select>
-                  </div>
-                  <motion.button
-                    onClick={() => {
-                      resetPodcastState();
-                      handlePodcastGeneration();
-                    }}
-                    disabled={podcastGenerating}
-                    className="bg-gradient-to-r from-[#DC2626] to-[#B91C1C] text-white font-medium py-2 px-4 rounded-lg hover:shadow-lg transition-all duration-300 flex items-center space-x-2 group/btn relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
-                    whileHover={{ scale: podcastGenerating ? 1 : 1.02 }}
-                    whileTap={{ scale: podcastGenerating ? 1 : 0.98 }}
+                {/* Language Selection */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Language
+                  </label>
+                  <select
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg py-2.5 px-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626] focus:border-[#DC2626] transition-colors duration-200"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
-                    {podcastGenerating ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Play className="w-4 h-4" />
-                    )}
-                    <span className="text-sm">{podcastGenerating ? 'Generating...' : 'Generate'}</span>
-                  </motion.button>
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                    <option value="hi">Hindi</option>
+                    <option value="ja">Japanese</option>
+                    <option value="zh">Chinese</option>
+                  </select>
                 </div>
+                
+                {/* Generate Button */}
+                <motion.button
+                  onClick={() => {
+                    resetPodcastState();
+                    handlePodcastGeneration();
+                  }}
+                  disabled={podcastGenerating}
+                  className="w-full bg-[#DC2626] text-white font-medium py-3 px-4 rounded-lg hover:bg-[#B91C1C] transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  whileHover={{ scale: podcastGenerating ? 1 : 1.01 }}
+                  whileTap={{ scale: podcastGenerating ? 1 : 0.99 }}
+                >
+                  {podcastGenerating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Generating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4" />
+                      <span>Generate Podcast</span>
+                    </>
+                  )}
+                </motion.button>
               </div>
             </motion.div>
           </motion.div>
@@ -516,67 +497,28 @@ const PodcastTab = ({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="relative bg-gradient-to-br from-[#DC2626]/5 via-[#DC2626]/3 to-transparent border border-[#DC2626]/20 rounded-2xl p-8 overflow-hidden group"
-            whileHover={{ scale: 1.01 }}
-            style={{
-              backdropFilter: 'blur(15px) saturate(150%)',
-              boxShadow: '0 8px 32px rgba(220, 38, 38, 0.08)'
-            }}
+            className="bg-white border border-gray-200 rounded-xl p-8 shadow-sm hover:shadow-md transition-shadow duration-300"
           >
-            {/* Ambient background pattern */}
-            <div className="absolute inset-0 opacity-5">
-              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-[#DC2626] to-transparent" />
-            </div>
-            
-            <div className="relative z-10">
-              <header className="flex items-center space-x-4 mb-8">
-                <motion.div 
-                  className="w-14 h-14 bg-gradient-to-r from-[#DC2626] to-[#B91C1C] rounded-2xl flex items-center justify-center shadow-lg"
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Mic className="w-7 h-7 text-white" />
-                </motion.div>
-                <div>
-                  <h3 className="font-black text-[#1A1A1A] text-xl mb-1">
-                    AI Podcast Generator
-                  </h3>
-                  <p className="text-sm text-[#1A1A1A] opacity-60 leading-relaxed">
-                    Transform your analysis into an engaging audio discussion
-                  </p>
+            <div className="space-y-6">
+              <header className="text-center">
+                <div className="w-16 h-16 bg-[#DC2626] rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <Mic className="w-8 h-8 text-white" />
                 </div>
+                <h3 className="font-semibold text-gray-900 text-xl mb-2">
+                  AI Podcast Generator
+                </h3>
+                <p className="text-gray-600 max-w-md mx-auto">
+                  Transform your document analysis into an engaging audio discussion
+                </p>
               </header>
-              
-              <motion.button
-                onClick={handlePodcastGeneration}
-                disabled={podcastGenerating}
-                className="w-full bg-gradient-to-r from-[#DC2626] to-[#B91C1C] text-white font-bold py-4 px-6 rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center space-x-3 group relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
-                whileHover={{ scale: podcastGenerating ? 1 : 1.02, y: podcastGenerating ? 0 : -1 }}
-                whileTap={{ scale: podcastGenerating ? 1 : 0.98 }}
-                style={{
-                  boxShadow: '0 4px 16px rgba(220, 38, 38, 0.2)'
-                }}
-              >
-                {/* Button shine effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                {podcastGenerating ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Play className="w-5 h-5" />
-                )}
-                <span>{podcastGenerating ? 'Generating AI Podcast...' : 'Generate AI Podcast'}</span>
-                {!podcastGenerating && (
-                  <ArrowRight className="w-4 h-4 opacity-70 group-hover:translate-x-1 transition-transform duration-300" />
-                )}
-              </motion.button>
 
               {/* Language selector */}
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-[#1A1A1A] opacity-70 mb-1">Language</label>
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700">Language</label>
                 <select
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
-                  className="w-full border border-[#E5E7EB]/60 rounded-lg p-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+                  className="w-full border border-gray-300 rounded-lg py-2.5 px-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626] focus:border-[#DC2626] transition-colors duration-200"
                 >
                   <option value="en">English</option>
                   <option value="es">Spanish</option>
@@ -586,8 +528,30 @@ const PodcastTab = ({
                   <option value="ja">Japanese</option>
                   <option value="zh">Chinese</option>
                 </select>
-                <p className="text-xs text-[#1A1A1A] opacity-50 mt-1">Transcript and TTS will be generated in the selected language.</p>
+                <p className="text-xs text-gray-500">
+                  Audio will be generated in the selected language with native pronunciation
+                </p>
               </div>
+              
+              <motion.button
+                onClick={handlePodcastGeneration}
+                disabled={podcastGenerating}
+                className="w-full bg-[#DC2626] text-white font-medium py-3 px-4 rounded-lg hover:bg-[#B91C1C] transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                whileHover={{ scale: podcastGenerating ? 1 : 1.01 }}
+                whileTap={{ scale: podcastGenerating ? 1 : 0.99 }}
+              >
+                {podcastGenerating ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-5 h-5" />
+                    <span>Generate AI Podcast</span>
+                  </>
+                )}
+              </motion.button>
             </div>
           </motion.div>
         )}
