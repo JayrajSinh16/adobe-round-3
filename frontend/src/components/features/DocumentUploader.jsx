@@ -525,8 +525,6 @@ const DocumentUploader = () => {
                                 <div className="flex items-center space-x-2 text-xs text-[#1A1A1A] opacity-60">
                                   <span>{formatFileSize(file.size)}</span>
                                   <span>•</span>
-                                  <span>{file.pages} pages</span>
-                                  <span>•</span>
                                   <div className="flex items-center space-x-1 ml-2">
                                     <CheckCircle className="w-4 h-4 text-[#059669]" />
                                     <span className="text-[#059669] font-medium">Ready</span>

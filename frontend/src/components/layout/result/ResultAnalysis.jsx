@@ -216,19 +216,37 @@ const PDFAnalysisWorkspace = () => {
   }, [clearInsightsCache]);
 
   useEffect(() => {
+    let cancelled = false;
     if (uploadedFiles && uploadedFiles.length > 0) {
+      const last = uploadedFiles[uploadedFiles.length - 1];
       setFiles(uploadedFiles);
-      setSelectedFile(uploadedFiles[uploadedFiles.length - 1]);
+      setSelectedFile(last);
+      // Merge with any PDFs present in IndexedDB
+      (async () => {
+        try {
+          const records = await getActivePDFs(); if (cancelled) return;
+          const idbFiles = (records || []).map((rec, idx) => {
+            const blob = rec.blob; const fileObj = new File([blob], rec.name, { type: rec.type || 'application/pdf' });
+            return { id: rec.id || `file-${Date.now()}-${idx}` , name: rec.name, size: rec.size, type: rec.type || 'application/pdf', uploadedAt: rec.uploadedAt || new Date().toISOString(), file: fileObj };
+          });
+          if (idbFiles.length > 0) {
+            const seen = new Set(uploadedFiles.map(f => `${f.name}|${f.size}`));
+            const toAdd = idbFiles.filter(f => !seen.has(`${f.name}|${f.size}`));
+            if (toAdd.length > 0) { setFiles(prev => [...prev, ...toAdd]); }
+          }
+        } catch {}
+      })();
     } else {
       const loadFromIndexedDB = async () => {
         try {
-          const records = await getActivePDFs();
+          const records = await getActivePDFs(); if (cancelled) return;
           if (records && records.length > 0) {
-            const convertedFiles = records.map(record => {
+            const convertedFiles = records.map((record, idx) => {
               if (record.blob && record.blob instanceof Blob) {
-                return new File([record.blob], record.name, { type: record.type || 'application/pdf', lastModified: record.uploadedAt ? new Date(record.uploadedAt).getTime() : Date.now() });
+                return { id: record.id || `file-${Date.now()}-${idx}`, name: record.name, size: record.size, type: record.type || 'application/pdf', uploadedAt: record.uploadedAt || new Date().toISOString(), file: new File([record.blob], record.name, { type: record.type || 'application/pdf', lastModified: record.uploadedAt ? new Date(record.uploadedAt).getTime() : Date.now() }) };
               } else if (record.dataUrl) {
-                return base64ToFile(record.dataUrl, record.name, record.type, record.uploadedAt ? new Date(record.uploadedAt).getTime() : Date.now());
+                const f = base64ToFile(record.dataUrl, record.name, record.type, record.uploadedAt ? new Date(record.uploadedAt).getTime() : Date.now());
+                return f ? { id: record.id || `file-${Date.now()}-${idx}`, name: record.name, size: record.size, type: record.type || 'application/pdf', uploadedAt: record.uploadedAt || new Date().toISOString(), file: f } : null;
               } else { return null; }
             }).filter(Boolean);
             if (convertedFiles.length > 0) {
@@ -244,33 +262,10 @@ const PDFAnalysisWorkspace = () => {
       };
       loadFromIndexedDB();
     }
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        if (files && files.length > 0) return;
-        const records = await getActivePDFs();
-        if (cancelled) return;
-        if (!Array.isArray(records) || records.length === 0) return;
-        const restored = records.map((rec, idx) => {
-          const blob = rec.blob;
-          const fileObj = new File([blob], rec.name, { type: rec.type || 'application/pdf' });
-          return { id: rec.id || `file-${Date.now()}-${idx}`, name: rec.name, size: rec.size, type: rec.type || 'application/pdf', uploadedAt: rec.uploadedAt || new Date().toISOString(), file: fileObj };
-        });
-        setFiles(restored);
-        if (restored.length > 0) {
-          const last = restored[restored.length - 1];
-          setSelectedFile(last);
-          const tid = `${last.id || last.name}-${Date.now()}`;
-          setOpenTabs([{ id: tid, file: last }]);
-          setActiveTabId(tid);
-        }
-      } catch (e) {}
-    })();
     return () => { cancelled = true; };
   }, []);
+
+  // (Removed redundant second loader; initial loader now handles both state and IndexedDB)
 
   useEffect(() => {
     let cancel = false;
@@ -291,20 +286,20 @@ const PDFAnalysisWorkspace = () => {
     let intervalId;
     const reconcile = async () => {
       try {
-        const records = await getActivePDFs();
-        if (cancelled) return;
-        const byKey = new Set((records || []).map((r) => `${r.name}|${r.size}`));
-        if ((!records || records.length === 0) && files.length > 0) {
-          setFiles([]); setOpenTabs([]); setActiveTabId(null); setSelectedFile(null); return;
-        }
-        const filtered = files.filter((f) => byKey.has(`${f.name}|${f.size}`));
-        if (filtered.length !== files.length) {
-          setFiles(filtered);
-          setOpenTabs((prev) => prev.filter((t) => byKey.has(`${t.file?.name}|${t.file?.size}`)));
-          if (selectedFile && !byKey.has(`${selectedFile.name}|${selectedFile.size}`)) {
-            setSelectedFile(filtered[0] || null);
-            setActiveTabId((prevId) => { const first = filtered[0]; const tab = first ? `${first.id || first.name}-${Date.now()}` : null; return tab; });
+        const records = await getActivePDFs(); if (cancelled) return;
+        const currentKeys = new Set((files || []).map(f => `${f.name}|${f.size}`));
+        const additions = [];
+        (records || []).forEach((rec, idx) => {
+          const key = `${rec.name}|${rec.size}`;
+          if (!currentKeys.has(key)) {
+            try {
+              const blob = rec.blob; const fileObj = new File([blob], rec.name, { type: rec.type || 'application/pdf' });
+              additions.push({ id: rec.id || `file-${Date.now()}-${idx}`, name: rec.name, size: rec.size, type: rec.type || 'application/pdf', uploadedAt: rec.uploadedAt || new Date().toISOString(), file: fileObj });
+            } catch {}
           }
+        });
+        if (additions.length > 0) {
+          setFiles(prev => [...prev, ...additions]);
         }
       } catch {}
     };
@@ -313,7 +308,7 @@ const PDFAnalysisWorkspace = () => {
     document.addEventListener('visibilitychange', onVis);
     reconcile();
     return () => { cancelled = true; if (intervalId) window.clearInterval(intervalId); document.removeEventListener('visibilitychange', onVis); };
-  }, [files, selectedFile]);
+  }, [files]);
 
   const handleInsightClick = async (insight) => {
     try {

@@ -58,9 +58,23 @@ export async function getActivePDFs() {
           try { store.delete(rec.id); } catch {}
           continue;
         }
-        // Only accept expected shape
-        if (!rec.name || typeof rec.size !== 'number' || !rec.blob) continue;
-        active.push(rec);
+        // Only accept expected shape (support legacy records saved as dataUrl)
+        if (!rec.name) continue;
+        let blob = rec.blob;
+        if (!blob && typeof rec.dataUrl === 'string' && rec.dataUrl.startsWith('data:')) {
+          try {
+            blob = dataUrlToBlob(rec.dataUrl);
+            if (blob) {
+              // Backfill blob and size for future reads
+              const updated = { ...rec, blob, size: typeof rec.size === 'number' ? rec.size : blob.size };
+              try { store.put(updated); } catch {}
+              rec.blob = blob; rec.size = updated.size;
+            }
+          } catch {}
+        }
+        const size = typeof rec.size === 'number' ? rec.size : (blob && typeof blob.size === 'number' ? blob.size : undefined);
+        if (!blob || typeof size !== 'number') continue;
+        active.push({ ...rec, blob, size });
       }
       resolve(active);
     };
