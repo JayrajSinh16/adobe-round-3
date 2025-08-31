@@ -524,7 +524,7 @@ const PDFAnalysisWorkspace = () => {
 
   const handleAdobeApisReady = useCallback((apis) => { adobeApisRef.current = apis; }, []);
 
-  const handleGeneratePodcast = useCallback(async () => {
+  const handleGeneratePodcast = useCallback(async ({ language = 'en' } = {}) => {
     try {
       setPodcastGenerating(true); setPodcastError(null);
       if (!selectedTextContext || !selectedTextContext.text) { toast.error('Please select some text first to generate a podcast'); return; }
@@ -538,7 +538,7 @@ const PDFAnalysisWorkspace = () => {
         if (cached) { try { const parsedCache = JSON.parse(cached); if (parsedCache.data && parsedCache.data.insights) { insights = parsedCache.data.insights; } } catch (e) {} }
       }
       if (!insights || insights.length === 0) { toast.error('No insights available. Please generate insights first by selecting text.'); return; }
-      const podcastResult = await generatePodcastAudio({ selected_text: selectedTextContext.text, insights: insights, document_id: serverDocId, format: 'podcast', duration: 'medium' });
+      const podcastResult = await generatePodcastAudio({ selected_text: selectedTextContext.text, insights: insights, document_id: serverDocId, format: 'podcast', duration: 'medium', language });
       setPodcastData(podcastResult); toast.success('Podcast generated successfully!');
     } catch (error) { setPodcastError(error.message || 'Failed to generate podcast'); toast.error(error.message || 'Failed to generate podcast'); }
     finally { setPodcastGenerating(false); }

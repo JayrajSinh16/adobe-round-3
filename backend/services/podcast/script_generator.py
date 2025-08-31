@@ -13,13 +13,14 @@ class ScriptGenerator:
         pass
     
     def generate_script(self, selected_text: str, insights_dict: List[Dict[str, Any]], 
-                       format: str, target_duration_minutes: float) -> List[Dict[str, Any]]:
+                       format: str, target_duration_minutes: float, language: str = "en") -> List[Dict[str, Any]]:
         """Generate script using LLM with provided insights and time constraints"""
         script_data = generate_podcast_script(
             selected_text=selected_text,
             insights=insights_dict,
             format=format,
-            max_duration_minutes=target_duration_minutes
+            max_duration_minutes=target_duration_minutes,
+            language=language
         )
         return script_data
     

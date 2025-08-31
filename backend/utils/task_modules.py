@@ -272,7 +272,7 @@ class ContentGenerator:
     def __init__(self):
         self.client = get_llm_client()
     
-    def generate_podcast_script(self, selected_text: str, insights: List[Dict], format: str = "podcast", max_duration_minutes: float = 4.5) -> List[Dict]:
+    def generate_podcast_script(self, selected_text: str, insights: List[Dict], format: str = "podcast", max_duration_minutes: float = 4.5, language: str = "en") -> List[Dict]:
         """Generate natural, informative podcast script with human-like expressions and strict time limits"""
         pdf_context = get_pdf_context()
         
@@ -286,8 +286,28 @@ class ContentGenerator:
         # Format insights for better LLM understanding
         insights_summary = self._format_insights_for_prompt(insights)
         
+        # Language directive (LLM must produce the dialogue in this language)
+        # Map language code to human-readable name for better LLM adherence
+        lang_code = (language or "en").split('-')[0].lower()
+        lang_name_map = {
+            "en": "English",
+            "es": "Spanish",
+            "fr": "French",
+            "de": "German",
+            "hi": "Hindi",
+            "ja": "Japanese",
+            "zh": "Chinese",
+        }
+        lang_name = lang_name_map.get(lang_code, language or "English")
+        language_directive = (
+            f"Respond exclusively in {lang_name} ({language}). If the selected text or insights are in a different language, translate them into {lang_name}."
+        )
+
         if format == "podcast":
             system_prompt = f"""You are a professional podcast script writer creating natural, engaging dialogue between Alex (Host - Female) and Jamie (Expert - Male). 
+
+CRITICAL LANGUAGE CONSTRAINT:
+Respond exclusively in {lang_name} ({language}). Translate any content into {lang_name}. Do not include any other language.
 
 CRITICAL TIME CONSTRAINTS:
 1. MAXIMUM DURATION: {max_duration_minutes} minutes ({max_words} words total)
@@ -328,7 +348,9 @@ EXACT JSON FORMAT:
   {{"speaker": "Jamie", "text": "Your detailed response here"}}
 ]"""
             
-            user_prompt = f"""Create a natural conversation about: {selected_text}
+            user_prompt = f"""{language_directive}
+
+Create a natural conversation about: {selected_text}
 
 Available insights with detailed information:
 {insights_summary}
@@ -349,7 +371,10 @@ Focus on being informative while maintaining natural conversation flow. Include 
 Output pure JSON only - no markdown, no explanations."""
         
         else:  # overview format
-            system_prompt = """You are a professional audio narrator creating a comprehensive overview. 
+            system_prompt = f"""You are a professional audio narrator creating a comprehensive overview. 
+
+CRITICAL LANGUAGE CONSTRAINT:
+Respond exclusively in {lang_name} ({language}). Translate any content into {lang_name}. Do not include any other language.
 
 CRITICAL: You MUST respond with ONLY valid JSON format. No markdown, no explanations, no backticks, just pure JSON.
 
@@ -363,7 +388,9 @@ EXACT OUTPUT FORMAT:
   }
 ]"""
             
-            user_prompt = f"""Create a comprehensive 3-5 minute audio overview about: {selected_text}
+            user_prompt = f"""{language_directive}
+
+Create a comprehensive 3-5 minute audio overview about: {selected_text}
 
 Available insights to incorporate:
 {insights_summary}
@@ -432,18 +459,30 @@ Remember: Respond with ONLY the JSON array, no other text."""
             # Validate minimum and maximum length
             if len(valid_script) < 8 and format == "podcast":
                 print("⚠️ Generated script too short, using extended fallback with time limits")
-                return self._get_extended_fallback_script(format, selected_text, insights, max_duration_minutes)
+                return self._get_extended_fallback_script(format, selected_text, insights, max_duration_minutes, language)
             
             if estimated_duration > max_duration_minutes:
                 print(f"⚠️ Script exceeds time limit, truncating to {max_duration_minutes} minutes")
                 valid_script = self._truncate_script_to_time_limit(valid_script, max_duration_minutes)
             
-            return valid_script if valid_script else self._get_extended_fallback_script(format, selected_text, insights, max_duration_minutes)
+            # Enforce language by translating if needed (LLM might ignore language directive)
+            if valid_script:
+                try:
+                    target = (language or "en").lower()
+                    if not target.startswith("en"):
+                        texts = [seg["text"] for seg in valid_script]
+                        translated = self._translate_texts(texts, language)
+                        for i, t in enumerate(translated):
+                            valid_script[i]["text"] = t
+                except Exception:
+                    pass
+
+            return valid_script if valid_script else self._get_extended_fallback_script(format, selected_text, insights, max_duration_minutes, language)
             
         except Exception as e:
             print(f"JSON parsing error: {e}")
             print(f"Raw response: {response[:200]}...")
-            return self._get_extended_fallback_script(format, selected_text, insights, max_duration_minutes)
+            return self._get_extended_fallback_script(format, selected_text, insights, max_duration_minutes, language)
     
     def _truncate_script_to_time_limit(self, script: List[Dict], max_duration_minutes: float) -> List[Dict]:
         """Truncate script to fit within time limit"""
@@ -481,13 +520,10 @@ Remember: Respond with ONLY the JSON array, no other text."""
     def _fix_json_response(self, response: str) -> str:
         """Fix common JSON formatting issues"""
         import re
-        
-        # Fix unterminated strings by finding the last complete object
         try:
             # Find the last complete JSON object/array
             stack = []
             last_valid_pos = 0
-            
             for i, char in enumerate(response):
                 if char == '[':
                     stack.append('[')
@@ -501,32 +537,64 @@ Remember: Respond with ONLY the JSON array, no other text."""
                 elif char == '}':
                     if stack and stack[-1] == '{':
                         stack.pop()
-            
             if last_valid_pos > 0:
                 response = response[:last_valid_pos]
-            
             # Fix common quote issues
             response = re.sub(r'([^\\])"([^"]*?)([^\\])"([^,}\]]*)', r'\1"\2\3"\4', response)
-            
             return response
-            
+
         except Exception:
             return response
+
+    def _translate_texts(self, texts: List[str], language: str) -> List[str]:
+        """Translate a list of strings to the given language using the LLM client. Returns originals on failure."""
+        try:
+            target = (language or "en").lower()
+            if target.startswith("en"):
+                return texts
+            # Use a compact prompt focused only on translation
+            import json as _json
+            system = f"You are a precise translator. Translate every item to {language}. Output ONLY a JSON array of translated strings."
+            user = "Translate these strings: " + _json.dumps(texts, ensure_ascii=False)
+            resp = self.client.generate(prompt=user, max_tokens=800, temperature=0.2, system_prompt=system).strip()
+            if resp.startswith('```json'):
+                resp = resp[7:]
+            elif resp.startswith('```'):
+                resp = resp[3:]
+            if resp.endswith('```'):
+                resp = resp[:-3]
+            parsed = _json.loads(resp)
+            if isinstance(parsed, list) and all(isinstance(x, str) for x in parsed) and len(parsed) == len(texts):
+                return parsed
+            return texts
+        except Exception:
+            return texts
     
-    def _get_fallback_script(self, format: str, selected_text: str) -> List[Dict]:
-        """Get basic fallback script if JSON parsing fails"""
+    def _get_fallback_script(self, format: str, selected_text: str, language: str = "en") -> List[Dict]:
+        """Get basic fallback script if JSON parsing fails. Ensures language via translation."""
         if format == "podcast":
-            return [
+            base = [
                 {"speaker": "Alex", "text": f"So Jamie, we're here to discuss {selected_text}."},
                 {"speaker": "Jamie", "text": "That's right Alex. This is actually a really fascinating topic with, uh, quite a bit of depth to it."},
                 {"speaker": "Alex", "text": "What makes this particularly interesting to you?"},
                 {"speaker": "Jamie", "text": "Well, you know, when you look at the details, there are some really compelling aspects that most people don't realize."}
             ]
         else:
-            return [{"speaker": "Narrator", "text": f"Today we explore {selected_text}, uncovering its significance and key insights from our comprehensive analysis."}]
+            base = [{"speaker": "Narrator", "text": f"Today we explore {selected_text}, uncovering its significance and key insights from our comprehensive analysis."}]
+
+        try:
+            target = (language or "en").lower()
+            if not target.startswith("en"):
+                texts = [s["text"] for s in base]
+                translated = self._translate_texts(texts, language)
+                for i, t in enumerate(translated):
+                    base[i]["text"] = t
+        except Exception:
+            pass
+        return base
     
-    def _get_extended_fallback_script(self, format: str, selected_text: str, insights: List[Dict], max_duration_minutes: float = 4.5) -> List[Dict]:
-        """Get comprehensive fallback script with natural conversation and strict time limits"""
+    def _get_extended_fallback_script(self, format: str, selected_text: str, insights: List[Dict], max_duration_minutes: float = 4.5, language: str = "en") -> List[Dict]:
+        """Get comprehensive fallback script with natural conversation and strict time limits. Ensures language via translation."""
         if format == "podcast":
             # Calculate word limits based on duration
             max_words = int(max_duration_minutes * 160)  # 160 WPM
@@ -607,11 +675,33 @@ Remember: Respond with ONLY the JSON array, no other text."""
                 script = self._truncate_script_to_time_limit(script, max_duration_minutes)
             
             print(f"📊 Fallback script: {len(script)} segments, {sum(len(s['text'].split()) for s in script)} words")
+
+            # Translate if needed
+            try:
+                target = (language or "en").lower()
+                if not target.startswith("en"):
+                    texts = [s["text"] for s in script]
+                    translated = self._translate_texts(texts, language)
+                    for i, t in enumerate(translated):
+                        script[i]["text"] = t
+            except Exception:
+                pass
+
             return script
         else:
             # Extended narrator format
             content = f"Today we explore {selected_text}, uncovering key insights."
-            return [{"speaker": "Narrator", "text": content}]
+            base = [{"speaker": "Narrator", "text": content}]
+            try:
+                target = (language or "en").lower()
+                if not target.startswith("en"):
+                    texts = [s["text"] for s in base]
+                    translated = self._translate_texts(texts, language)
+                    for i, t in enumerate(translated):
+                        base[i]["text"] = t
+            except Exception:
+                pass
+            return base
     
     def _format_insights_for_prompt(self, insights: List[Dict]) -> str:
         """Format insights for LLM prompt"""

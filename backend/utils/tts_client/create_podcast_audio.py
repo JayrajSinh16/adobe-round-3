@@ -10,7 +10,7 @@ from .generate_audio import generate_audio
 from .combine_text_transcripts import combine_text_transcripts
 
 
-def create_podcast_audio(script: List[Dict[str, str]]) -> str:
+def create_podcast_audio(script: List[Dict[str, str]], language: str = "en") -> str:
     """
     Create a complete podcast audio from script
     Returns the path to the combined audio file
@@ -22,7 +22,7 @@ def create_podcast_audio(script: List[Dict[str, str]]) -> str:
     # Generate individual audio files
     for i, entry in enumerate(script):
         logger.info(f"🎤 Generating audio for segment {i+1}/{len(script)}: {entry['speaker']}")
-        audio_file = generate_audio(entry["text"], entry["speaker"])
+        audio_file = generate_audio(entry["text"], entry["speaker"], language=language)
         if audio_file and (audio_file.endswith('.wav') or audio_file.endswith('.txt')):
             from config import settings
             audio_path = os.path.join(settings.audio_folder, audio_file)

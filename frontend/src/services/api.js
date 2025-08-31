@@ -137,7 +137,7 @@ export const deleteDocument = async (documentId) => {
 };
 
 // Generate podcast function with proper backend integration
-export const generatePodcastAudio = async ({ selected_text, insights, document_id, format = 'podcast', duration = 'medium' }) => {
+export const generatePodcastAudio = async ({ selected_text, insights, document_id, format = 'podcast', duration = 'medium', language = 'en' }) => {
   try {
     // Build the request payload matching the backend PodcastRequest model
     const payload = {
@@ -158,7 +158,8 @@ export const generatePodcastAudio = async ({ selected_text, insights, document_i
         confidence: Number(insight.confidence) || 0.8,
       })) : [],
       format: format,
-      duration: duration
+  duration: duration,
+  language: language
     };
 
     console.log('Generating podcast with payload:', payload);
@@ -174,9 +175,10 @@ export const generatePodcastAudio = async ({ selected_text, insights, document_i
 
     // Extract metadata from headers
     const headers = response.headers;
-    const transcript = headers['x-transcript'] || '';
+  const transcript = headers['x-transcript-preview'] || headers['x-transcript'] || '';
     const audioDuration = parseFloat(headers['x-duration']) || 0;
     const audioFormat = headers['x-format'] || format;
+  const responseLanguage = headers['x-language'] || language;
     const fileSize = parseInt(headers['x-file-size']) || 0;
 
     return {
@@ -185,6 +187,7 @@ export const generatePodcastAudio = async ({ selected_text, insights, document_i
       transcript,
       duration: audioDuration,
       format: audioFormat,
+  language: responseLanguage,
       fileSize,
       success: true
     };

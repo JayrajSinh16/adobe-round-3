@@ -10,7 +10,7 @@ google-generativeai==0.8.5
 google-cloud-texttospeech==2.27.0
 requests>=2.25.0
 pydub>=0.25.0
-
+pyttsx3
 # FastAPI and Web Framework
 fastapi
 uvicorn[standard]

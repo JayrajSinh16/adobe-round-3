@@ -8,7 +8,7 @@ from typing import List, Dict
 logger = logging.getLogger(__name__)
 
 
-def generate_audio(text: str, speaker: str = "default") -> str:
+def generate_audio(text: str, speaker: str = "default", language: str = "en") -> str:
     """
     Generate audio from text using configured TTS provider
     Returns the path to the generated audio file
@@ -55,16 +55,48 @@ def generate_audio(text: str, speaker: str = "default") -> str:
                     region=region
                 )
                 
-                # Set voice based on speaker with enhanced mapping
-                voice_mapping = {
-                    "Host": "en-US-JennyNeural",      # Female, friendly
-                    "Alex": "en-US-AriaNeural",       # Female, professional  
-                    "Expert": "en-US-GuyNeural",      # Male, authoritative
-                    "Jamie": "en-US-DavisNeural",     # Male, conversational
-                    "default": "en-US-AriaNeural"
+                # Set voice based on speaker with language-aware mapping (common locales)
+                lang = (language or "en").lower()
+                # Normalize to locale codes Azure expects
+                # Map short codes to locales
+                locale_map = {
+                    "en": "en-US",
+                    "es": "es-ES",
+                    "fr": "fr-FR",
+                    "de": "de-DE",
+                    "hi": "hi-IN",
+                    "ja": "ja-JP",
+                    "zh": "zh-CN",
                 }
-                
-                selected_voice = voice_mapping.get(speaker, voice_mapping["default"])
+                locale = locale_map.get(lang, lang if '-' in lang else "en-US")
+
+                female_default = {
+                    "en-US": "en-US-JennyNeural",
+                    "es-ES": "es-ES-ElviraNeural",
+                    "fr-FR": "fr-FR-DeniseNeural",
+                    "de-DE": "de-DE-KatjaNeural",
+                    "hi-IN": "hi-IN-SwaraNeural",
+                    "ja-JP": "ja-JP-NanamiNeural",
+                    "zh-CN": "zh-CN-XiaoxiaoNeural",
+                }.get(locale, "en-US-JennyNeural")
+
+                male_default = {
+                    "en-US": "en-US-GuyNeural",
+                    "es-ES": "es-ES-AlvaroNeural",
+                    "fr-FR": "fr-FR-HenriNeural",
+                    "de-DE": "de-DE-ConradNeural",
+                    "hi-IN": "hi-IN-MadhurNeural",
+                    "ja-JP": "ja-JP-KeitaNeural",
+                    "zh-CN": "zh-CN-YunxiNeural",
+                }.get(locale, "en-US-GuyNeural")
+
+                # Map specific speakers to gendered defaults
+                if speaker in ["Host", "Alex", "Narrator"]:
+                    selected_voice = female_default
+                elif speaker in ["Expert", "Jamie"]:
+                    selected_voice = male_default
+                else:
+                    selected_voice = female_default
                 speech_config.speech_synthesis_voice_name = selected_voice
                 
                 logger.info(f"🎤 Selected Azure voice: {selected_voice} for speaker: {speaker}")
@@ -113,30 +145,39 @@ def generate_audio(text: str, speaker: str = "default") -> str:
             except Exception as e:
                 logger.error(f"❌ Azure TTS error: {str(e)}")
                 provider = "local"  # Fallback to local
-        
+
         # Local TTS fallback with pyttsx3
-        if provider == "local" or provider == "azure":  # Fallback to local if Azure fails
+        if provider == "local":  # Fallback to local if Azure fails or explicitly selected
             logger.info(f"🎤 Using local TTS fallback")
             
             # Use pyttsx3 for local TTS
             try:
-                import pyttsx3
+                import importlib
+                pyttsx3 = importlib.import_module("pyttsx3")
                 
                 logger.info(f"🎤 Using pyttsx3 TTS for local synthesis")
                 engine = pyttsx3.init()
                 
-                # Configure voice based on speaker
+                # Configure voice based on speaker and language if available
                 voices = engine.getProperty('voices')
                 if voices and len(voices) > 1:
-                    if speaker in ["Host", "Alex"]:  # Female voice
-                        engine.setProperty('voice', voices[1].id if len(voices) > 1 else voices[0].id)
-                        logger.info(f"🎤 Set female voice for {speaker}")
-                    elif speaker in ["Expert", "Jamie"]:  # Male voice
-                        engine.setProperty('voice', voices[0].id)
-                        logger.info(f"🎤 Set male voice for {speaker}")
-                    else:
-                        engine.setProperty('voice', voices[0].id)
-                        logger.info(f"🎤 Set default voice for {speaker}")
+                    # Try to pick a voice that matches the language
+                    selected_local = None
+                    prefer_female = speaker in ["Host", "Alex", "Narrator"]
+                    lang_norm = (language or "en").split('-')[0].lower()
+                    for v in voices:
+                        vid = getattr(v, 'id', '')
+                        name = getattr(v, 'name', '')
+                        # Heuristic: language code present in id/name
+                        if lang_norm in (vid or '').lower() or lang_norm in (name or '').lower():
+                            selected_local = v
+                            if prefer_female and ('female' in (name or '').lower()):
+                                break
+                    if not selected_local:
+                        # Fallback to index 1 for female-ish voice, else first
+                        selected_local = voices[1] if prefer_female and len(voices) > 1 else voices[0]
+                    engine.setProperty('voice', selected_local.id)
+                    logger.info(f"🎤 Local TTS voice set: {getattr(selected_local, 'name', 'unknown')}")
                 
                 # Set speech parameters
                 if speaker in ["Alex", "Host"]:
@@ -171,7 +212,6 @@ def generate_audio(text: str, speaker: str = "default") -> str:
                 logger.info("💡 Install with: pip install pyttsx3")
             except Exception as e:
                 logger.warning(f"⚠️ pyttsx3 error: {str(e)}")
-                
     except Exception as e:
         logger.error(f"❌ Error in TTS generation: {str(e)}")
     

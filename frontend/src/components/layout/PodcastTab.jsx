@@ -38,6 +38,7 @@ const PodcastTab = ({
   const [error, setError] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [language, setLanguage] = useState('en');
   
   // Audio ref for playback control
   const audioRef = useRef(null);
@@ -159,8 +160,9 @@ const PodcastTab = ({
   
   // Enhanced podcast generation handler - delegates to parent
   const handlePodcastGeneration = useCallback(async () => {
-    handleGeneratePodcast(); // Call parent handler which does the actual API work
-  }, [handleGeneratePodcast]);
+    // Pass selected language to parent handler
+    handleGeneratePodcast({ language });
+  }, [handleGeneratePodcast, language]);
   
   // Audio playback controls
   const togglePlayPause = useCallback(() => {
@@ -467,24 +469,43 @@ const PodcastTab = ({
                   </div>
                 </div>
                 
-                <motion.button
-                  onClick={() => {
-                    resetPodcastState();
-                    handlePodcastGeneration();
-                  }}
-                  disabled={podcastGenerating}
-                  className="bg-gradient-to-r from-[#DC2626] to-[#B91C1C] text-white font-medium py-2 px-4 rounded-lg hover:shadow-lg transition-all duration-300 flex items-center space-x-2 group/btn relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
-                  whileHover={{ scale: podcastGenerating ? 1 : 1.02 }}
-                  whileTap={{ scale: podcastGenerating ? 1 : 0.98 }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
-                  {podcastGenerating ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Play className="w-4 h-4" />
-                  )}
-                  <span className="text-sm">{podcastGenerating ? 'Generating...' : 'Generate'}</span>
-                </motion.button>
+                {/* Inline Language Selector + Generate Button */}
+                <div className="flex items-center gap-3">
+                  <div className="hidden sm:block">
+                    <label className="block text-[11px] font-medium text-[#1A1A1A] opacity-60 mb-0.5">Language</label>
+                    <select
+                      value={language}
+                      onChange={(e) => setLanguage(e.target.value)}
+                      className="border border-[#E5E7EB]/60 rounded-md py-1.5 px-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+                    >
+                      <option value="en">English</option>
+                      <option value="es">Spanish</option>
+                      <option value="fr">French</option>
+                      <option value="de">German</option>
+                      <option value="hi">Hindi</option>
+                      <option value="ja">Japanese</option>
+                      <option value="zh">Chinese</option>
+                    </select>
+                  </div>
+                  <motion.button
+                    onClick={() => {
+                      resetPodcastState();
+                      handlePodcastGeneration();
+                    }}
+                    disabled={podcastGenerating}
+                    className="bg-gradient-to-r from-[#DC2626] to-[#B91C1C] text-white font-medium py-2 px-4 rounded-lg hover:shadow-lg transition-all duration-300 flex items-center space-x-2 group/btn relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
+                    whileHover={{ scale: podcastGenerating ? 1 : 1.02 }}
+                    whileTap={{ scale: podcastGenerating ? 1 : 0.98 }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
+                    {podcastGenerating ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Play className="w-4 h-4" />
+                    )}
+                    <span className="text-sm">{podcastGenerating ? 'Generating...' : 'Generate'}</span>
+                  </motion.button>
+                </div>
               </div>
             </motion.div>
           </motion.div>
@@ -548,6 +569,25 @@ const PodcastTab = ({
                   <ArrowRight className="w-4 h-4 opacity-70 group-hover:translate-x-1 transition-transform duration-300" />
                 )}
               </motion.button>
+
+              {/* Language selector */}
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-[#1A1A1A] opacity-70 mb-1">Language</label>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="w-full border border-[#E5E7EB]/60 rounded-lg p-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30"
+                >
+                  <option value="en">English</option>
+                  <option value="es">Spanish</option>
+                  <option value="fr">French</option>
+                  <option value="de">German</option>
+                  <option value="hi">Hindi</option>
+                  <option value="ja">Japanese</option>
+                  <option value="zh">Chinese</option>
+                </select>
+                <p className="text-xs text-[#1A1A1A] opacity-50 mt-1">Transcript and TTS will be generated in the selected language.</p>
+              </div>
             </div>
           </motion.div>
         )}

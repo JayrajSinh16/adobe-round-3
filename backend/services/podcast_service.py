@@ -27,17 +27,19 @@ class PodcastService:
         # Set the cache manager to use this service's cache
         self.cache_manager.generated_podcasts = self.generated_podcasts
     
-    def _generate_cache_key(self, selected_text: str, insights: List[Dict[str, Any]], format: str, duration: str) -> str:
+    def _generate_cache_key(self, selected_text: str, insights: List[Dict[str, Any]], format: str, duration: str, language: str = "en") -> str:
         """Generate a unique cache key based on content"""
-        return self.cache_manager.generate_cache_key(selected_text, insights, format, duration)
+        # Include language to avoid mixing different language outputs
+        key = self.cache_manager.generate_cache_key(selected_text, insights, format, duration)
+        return f"{key}_{language.lower()}"
     
     def generate_podcast(self, selected_text: str, insights: List[Dict[str, Any]],
-                        format: str = "podcast", duration: str = "medium") -> PodcastResponse:
+                        format: str = "podcast", duration: str = "medium", language: str = "en") -> PodcastResponse:
         """Generate podcast or audio overview using frontend insights with strict 4.5-minute limit"""
         start_time = time.time()
         
         # Check for cached version first with improved cache key
-        cache_key = self._generate_cache_key(selected_text, insights, format, duration)
+        cache_key = self._generate_cache_key(selected_text, insights, format, duration, language)
         cached = self.cache_manager.get_cached_podcast(cache_key)
         if cached:
             return cached
@@ -52,17 +54,17 @@ class PodcastService:
         
         # Generate script using script generator
         script_data = self.script_generator.generate_script(
-            selected_text, insights_dict, format, target_duration_minutes
+            selected_text, insights_dict, format, target_duration_minutes, language
         )
         
         # Convert to PodcastScript objects using data processor
         script = self.data_processor.convert_script_data_to_objects(script_data)
         
         # Generate audio using audio generator
-        audio_filename = self.audio_generator.generate_audio(script_data)
+        audio_filename = self.audio_generator.generate_audio(script_data, language)
         
         # Process audio result and handle fallbacks
-        audio_url = self.audio_generator.process_audio_result(audio_filename, script_data)
+        audio_url = self.audio_generator.process_audio_result(audio_filename, script_data, language)
         
         # Calculate duration using duration manager
         estimated_duration = self.duration_manager.estimate_duration(script)
@@ -81,9 +83,9 @@ class PodcastService:
         
         return response
     
-    def get_cached_podcast(self, selected_text: str, insights: List[Dict[str, Any]], format: str, duration: str) -> Optional[PodcastResponse]:
+    def get_cached_podcast(self, selected_text: str, insights: List[Dict[str, Any]], format: str, duration: str, language: str = "en") -> Optional[PodcastResponse]:
         """Get cached podcast if available"""
-        cache_key = self._generate_cache_key(selected_text, insights, format, duration)
+        cache_key = self._generate_cache_key(selected_text, insights, format, duration, language)
         return self.cache_manager.get_cached_podcast(cache_key)
 
 # Create singleton instance

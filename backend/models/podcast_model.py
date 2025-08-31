@@ -18,6 +18,8 @@ class PodcastRequest(BaseModel):
     insights: List[Insight]
     format: Literal["podcast", "overview"] = "podcast"
     duration: Literal["short", "medium", "long"] = "medium"
+    # BCP-47 language code (e.g., 'en', 'en-US', 'es', 'fr', 'de', 'hi', 'ja', 'zh')
+    language: Optional[str] = "en"
 
 class PodcastScript(BaseModel):
     speaker: str

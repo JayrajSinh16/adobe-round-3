@@ -14,14 +14,14 @@ class AudioGenerator:
     def __init__(self):
         pass
     
-    def generate_audio(self, script_data: List[Dict[str, Any]]) -> str:
+    def generate_audio(self, script_data: List[Dict[str, Any]], language: str = "en") -> str:
         """Generate audio with different voices"""
         print(f"🎤 Calling create_podcast_audio with {len(script_data)} segments...")
-        audio_filename = create_podcast_audio(script_data)
+        audio_filename = create_podcast_audio(script_data, language=language)
         print(f"🎤 create_podcast_audio returned: {audio_filename}")
         return audio_filename or ""
     
-    def process_audio_result(self, audio_filename: str, script_data: List[Dict[str, Any]]) -> str:
+    def process_audio_result(self, audio_filename: str, script_data: List[Dict[str, Any]], language: str = "en") -> str:
         """Process audio generation result and handle fallbacks"""
         if audio_filename and audio_filename.endswith('.wav'):
             # Verify the audio file exists and is not empty
@@ -33,7 +33,7 @@ class AudioGenerator:
             else:
                 print(f"❌ Audio file is empty or doesn't exist: {audio_path}")
                 # Create synthetic audio as fallback
-                return self._create_fallback_audio(script_data)
+                return self._create_fallback_audio(script_data, language)
         elif audio_filename and audio_filename.endswith('.txt'):
             # Transcript was generated instead of audio
             print(f"⚠️ Only transcript available: {audio_filename}")
@@ -43,12 +43,12 @@ class AudioGenerator:
             print("❌ No audio filename returned, setting empty audio_url")
             return ""
     
-    def _create_fallback_audio(self, script_data: List[Dict[str, Any]]) -> str:
+    def _create_fallback_audio(self, script_data: List[Dict[str, Any]], language: str = "en") -> str:
         """Create synthetic audio as fallback"""
         try:
             from utils.tts_client import generate_audio
             combined_text = " ".join([entry["text"] for entry in script_data[:3]])  # First 3 segments
-            fallback_audio = generate_audio(combined_text, "Host")
+            fallback_audio = generate_audio(combined_text, "Host", language=language)
             if fallback_audio and fallback_audio.endswith('.wav'):
                 audio_url = f"/static/audio/{fallback_audio}"
                 print(f"✅ Fallback audio URL set to: {audio_url}")
