@@ -99,7 +99,7 @@ const CenterPanel = ({
           <div
             key={t.id}
     className={`group flex-none flex items-center max-w-xs px-3 py-1.5 rounded-md cursor-pointer transition-colors ${
-              activeTabId === t.id ? 'bg-[#DC2626]/10 text-[#DC2626]' : 'hover:bg-[#E5E7EB]/50 text-[#1A1A1A]'
+              activeTabId === t.id ? 'border border-red-100 text-red-600' : 'hover:bg-[#E5E7EB]/50 text-[#1A1A1A]'
             }`}
             onClick={() => onActivateTab?.(t.id)}
             onAuxClick={(e) => { if (e.button === 1) onCloseTab?.(t.id); }}

@@ -4,15 +4,6 @@ import { X, ChevronDown, ChevronUp, Network, Lightbulb, Headphones, Sparkles } f
 import InsightsTab from './InsightsTab';
 import PodcastTab from './PodcastTab';
 
-/**
- * PREMIUM RIGHT PANEL COMPONENT
- * 
- * Design Philosophy: Museum-quality minimalism with mathematical precision
- * - Golden ratio proportions (1.618) for optimal visual harmony
- * - Asymmetrical layouts for sophisticated visual hierarchy
- * - Glass morphism with surgical precision in spacing
- * - Enterprise-grade micro-interactions and accessibility
- */
 const RightPanel = ({
   rightPanelVisible,
   selectedTextContext,
@@ -66,7 +57,7 @@ const RightPanel = ({
           initial="hidden"
           animate="visible"
           exit="exit"
-          className="w-[480px] bg-white/95 backdrop-blur-xl border-l border-[#E5E7EB]/20 shadow-2xl flex flex-col relative overflow-hidden"
+          className="w-[480px] bg-white/95 backdrop-blur-xl border-l border-[#E5E7EB]/20 shadow-xl flex flex-col relative overflow-hidden"
           style={{ backdropFilter: 'blur(20px) saturate(180%)', boxShadow: '0 32px 64px -24px rgba(26, 26, 26, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.05)', borderImage: 'linear-gradient(180deg, rgba(229, 231, 235, 0.2), rgba(229, 231, 235, 0.05)) 1' }}
         >
           <motion.header variants={itemVariants} className="relative px-6 py-2 border-b border-[#E5E7EB]/10" style={{ paddingTop: `${12 * goldenRatio}px` }}>
@@ -77,10 +68,10 @@ const RightPanel = ({
                   <h2 className="text-2xl font-black text-[#1A1A1A] tracking-tight leading-none mb-2">Smart Analysis</h2>
                   <p className="text-[#1A1A1A] opacity-60 font-medium text-sm leading-relaxed">AI-powered insights and connections</p>
                 </motion.div>
-                <motion.button onClick={() => setRightPanelVisible(false)} className="group relative p-3 rounded-xl hover:bg-[#FAFAF9] transition-all duration-300 flex-shrink-0" whileHover={{ scale: 1.05, transition: { duration: 0.2 } }} whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}>
+                <motion.button onClick={() => setRightPanelVisible(false)} className="group relative p-3 rounded-lg hover:bg-[#FAFAF9] transition-all duration-300 flex-shrink-0" whileHover={{ scale: 1.05, transition: { duration: 0.2 } }} whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}>
                   <X className="w-5 h-5 text-[#1A1A1A] opacity-50 group-hover:opacity-80 group-hover:text-[#DC2626] transition-all duration-300" />
-                  <div className="absolute inset-0 bg-[#DC2626]/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <motion.div className="absolute inset-0 rounded-xl border-2 border-[#DC2626]/20 opacity-0 group-hover:opacity-100" initial={false} whileHover={{ scale: [1, 1.05, 1], opacity: [0, 0.5, 0] }} transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }} />
+                  <div className="absolute inset-0 bg-[#DC2626]/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <motion.div className="absolute inset-0 rounded-lg border-2 border-[#DC2626]/20 opacity-0 group-hover:opacity-100" initial={false} whileHover={{ scale: [1, 1.05, 1], opacity: [0, 0.5, 0] }} transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }} />
                 </motion.button>
               </div>
 
@@ -92,25 +83,22 @@ const RightPanel = ({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -10, scale: 0.98 }}
                     transition={{ duration: 0.4, ease: premiumEasing }}
-                    className="relative  border border-[#DC2626]/20 rounded-2xl overflow-hidden mb-4"
+                    className="relative  border border-[#DC2626]/20 rounded-lg overflow-hidden mb-4"
                     style={{
                       backdropFilter: 'blur(15px) saturate(150%)',
                       
-                    }}
-                  >
+                    }}>
                     {/* Compact header with dropdown toggle */}
                     <motion.div 
                       className="flex items-center justify-between p-4 cursor-pointer group"
                       onClick={() => setIsSelectedTextExpanded(!isSelectedTextExpanded)}
                       whileHover={{ backgroundColor: 'rgba(220, 38, 38, 0.02)' }}
-                      transition={{ duration: 0.2 }}
-                    >
+                      transition={{ duration: 0.2 }}>
                       <div className="flex items-center space-x-3 flex-1 min-w-0">
                         <motion.div 
                           className="w-6 h-6 bg-gradient-to-r from-[#DC2626] to-[#B91C1C] rounded-lg flex items-center justify-center flex-shrink-0"
                           whileHover={{ scale: 1.05 }}
-                          transition={{ duration: 0.2 }}
-                        >
+                          transition={{ duration: 0.2 }}>
                           <Sparkles className="w-3 h-3 text-white" />
                         </motion.div>
                         
@@ -118,11 +106,10 @@ const RightPanel = ({
                           <span className="font-bold text-[#DC2626] truncate">
                             {selectedTextContext.documentName || 'Current Document'}
                           </span>
-                          <div className="w-1 h-1 bg-[#E5E7EB] rounded-full flex-shrink-0" />
+                          <div className="w-1 h-1 bg-[#E5E7EB] rounded-lg flex-shrink-0" />
                           <span className="flex-shrink-0">Page {selectedTextContext.page}</span>
                         </div>
-                      </div>
-                      
+                      </div>                      
                       <div className="flex items-center space-x-2">
                         {/* Quick preview of text when collapsed */}
                         {!isSelectedTextExpanded && (
@@ -152,21 +139,8 @@ const RightPanel = ({
                             <ChevronDown className="w-4 h-4 text-[#1A1A1A] opacity-60 group-hover:text-[#DC2626] group-hover:opacity-100" />
                           )}
                         </motion.div>
-                        {/* Close button */}
-                        <motion.button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setRightPanelVisible(false);
-                          }}
-                          className="p-1 rounded-lg hover:bg-[#DC2626]/10 transition-all duration-300 group/close"
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                        >
-                          <X className="w-4 h-4 text-[#1A1A1A] opacity-60 group-hover/close:opacity-100 group-hover/close:text-[#DC2626]" />
-                        </motion.button>
                       </div>
                     </motion.div>
-                    
                     {/* Expandable content */}
                     <AnimatePresence>
                       {isSelectedTextExpanded && (
@@ -179,8 +153,7 @@ const RightPanel = ({
                             ease: premiumEasing,
                             opacity: { duration: 0.2 }
                           }}
-                          className="overflow-hidden"
-                        >
+                          className="overflow-hidden">
                           <motion.div 
                             className="relative bg-gradient-to-r from-[#FAFAF9] to-white border-l-3 border-[#DC2626] mx-4 mb-4 pl-4 py-3 rounded-r-lg"
                             initial={{ x: -10, opacity: 0 }}
@@ -189,8 +162,7 @@ const RightPanel = ({
                             style={{
                               backdropFilter: 'blur(10px)',
                               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)'
-                            }}
-                          >
+                            }}>
                             <p className="text-[#1A1A1A] text-sm leading-relaxed line-clamp-2 italic">
                               {(() => {
                                 const s = toText(selectedTextContext.text, '');
@@ -205,10 +177,9 @@ const RightPanel = ({
                   </motion.div>
                 )}
               </AnimatePresence>
-
               {/* PREMIUM TAB NAVIGATION - Golden ratio spacing */}
               <motion.div 
-                className="relative bg-[#FAFAF9]/80 backdrop-blur-sm p-2 rounded-2xl border border-[#E5E7EB]/20"
+                className="relative bg-[#FAFAF9]/80 backdrop-blur-sm p-2 rounded-lg border border-[#E5E7EB]/20"
                 variants={itemVariants}
                 style={{ 
                   boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.02)',
@@ -248,7 +219,7 @@ const RightPanel = ({
                           setActiveInsightTab(tab.id);
                         }
                       }}
-                      className={`flex-1 relative flex items-center justify-center space-x-2 px-4 py-4 rounded-xl font-semibold text-sm transition-all duration-500 overflow-hidden ${
+                      className={`flex-1 relative flex items-center justify-center space-x-2 px-4 py-4 rounded-lg font-semibold text-sm transition-all duration-500 overflow-hidden ${
                         activeInsightTab === tab.id
                           ? 'bg-white text-[#DC2626] shadow-md'
                           : 'text-[#1A1A1A] opacity-60 hover:opacity-100 hover:bg-white/50'
@@ -257,17 +228,15 @@ const RightPanel = ({
                       whileTap={{ scale: 0.98 }}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1, duration: 0.4 }}
-                    >
+                      transition={{ delay: index * 0.1, duration: 0.4 }}>
                       {/* Active tab background gradient */}
                       {activeInsightTab === tab.id && (
                         <motion.div
                           layoutId="activeTab"
-                          className="absolute inset-0 bg-white rounded-xl"
+                          className="absolute inset-0 bg-white rounded-lg"
                           transition={{ type: "spring", stiffness: 500, damping: 35 }}
                         />
-                      )}
-                      
+                      )}                      
                       <div className="relative z-10 flex items-center space-x-2">
                         <tab.icon className="w-4 h-4" />
                         <span>{tab.label}</span>
@@ -286,8 +255,7 @@ const RightPanel = ({
             style={{ 
               scrollbarWidth: 'thin',
               scrollbarColor: '#E5E7EB transparent'
-            }}
-          >
+            }}>
             <AnimatePresence mode="wait">
               {analysisLoading ? (
                 <motion.div 
@@ -303,10 +271,9 @@ const RightPanel = ({
                     animate={{ rotate: 360 }}
                     transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
                   >
-                    <div className="w-full h-full border-4 border-[#E5E7EB]/20 rounded-full" />
-                    <div className="absolute top-0 left-0 w-full h-full border-4 border-transparent border-t-[#DC2626] rounded-full" />
-                  </motion.div>
-                  
+                    <div className="w-full h-full border-4 border-[#E5E7EB]/20 rounded-lg" />
+                    <div className="absolute top-0 left-0 w-full h-full border-4 border-transparent border-t-[#DC2626] rounded-lg" />
+                  </motion.div>                 
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -330,44 +297,23 @@ const RightPanel = ({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
                       transition={{ duration: 0.5, ease: premiumEasing }}
-                      className="space-y-6"
-                    >
-                      {/* Minimal source context */}
-                      {/* {selectedTextContext && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.4, ease: premiumEasing }}
-                          className="flex items-center space-x-3 p-4 bg-[#FAFAF9]/60 border border-[#E5E7EB]/30 rounded-2xl"
-                          style={{ backdropFilter: 'blur(10px)' }}
-                        >
-                          <div className="w-2 h-2 bg-[#DC2626] rounded-full" />
-                          <span className="text-sm font-medium text-[#1A1A1A] opacity-70">
-                            Analyzing from{' '}
-                            <span className="font-bold text-[#DC2626]">
-                              {selectedTextContext.documentName || 'Current Document'}
-                            </span>
-                            {' '}• Page {selectedTextContext.page}
-                          </span>
-                        </motion.div>
-                      )} */}
-
+                      className="space-y-6">
                       {/* Elegant connection cards */}
                       <div className="space-y-4">
                         {connectionsError && (
-                          <div className="p-4 border border-red-200 bg-red-50 text-sm text-red-700 rounded-xl">
+                          <div className="p-4 border border-red-200 bg-red-50 text-sm text-red-700 rounded-lg">
                             {connectionsError}
                           </div>
                         )}
                         {!connectionsError && hasConnectionsResponse && (connectionsData?.connections || []).length === 0 && (
-                          <div className="p-4 border border-gray-200 bg-gray-50 text-sm text-gray-700 rounded-xl">
+                          <div className="p-4 border border-gray-200 bg-gray-50 text-sm text-gray-700 rounded-lg">
                             No connections found.
                           </div>
                         )}
                         {(Array.isArray(connectionsData?.connections) ? connectionsData.connections : []).map((connection, index) => (
                           <motion.article
                             key={`${connection.title}-${index}`}
-                            className="group relative bg-white/90 border border-[#E5E7EB]/20 rounded-2xl overflow-hidden cursor-pointer"
+                            className="group relative bg-white/90 border border-[#E5E7EB]/20 rounded-lg overflow-hidden cursor-pointer"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ 
@@ -389,7 +335,7 @@ const RightPanel = ({
                               <header className="flex items-start justify-between mb-2">
                                 <div className="flex items-center space-x-3 flex-1">
                                   <motion.div 
-                                    className="w-3 h-3 rounded-full bg-[#DC2626]"
+                                    className="w-3 h-3 rounded-lg bg-[#DC2626]"
                                     whileHover={{ scale: 1.2 }}
                                     transition={{ duration: 0.2 }}
                                   />
@@ -416,7 +362,7 @@ const RightPanel = ({
                                   whileHover={{ scale: 1.01 }}
                                 >
                                   <div className="flex items-center space-x-3 w-full">
-                                    <div className="w-2 h-2 bg-[#DC2626] rounded-full opacity-60" />
+                                    <div className="w-2 h-2 bg-[#DC2626] rounded-lg opacity-60" />
                                     <div className='flex justify-between w-full items-center space-x-2'>
                                       <div 
                                         className="text-sm font-medium text-[#1A1A1A] hover:text-[#DC2626] cursor-pointer transition-colors duration-300"
@@ -449,7 +395,6 @@ const RightPanel = ({
                       </div>
                     </motion.section>
                   )}
-
                   {/* INSIGHTS TAB - Innovative insight cards with deep intelligence */}
                   {activeInsightTab === 'insights' && (
                     <InsightsTab 

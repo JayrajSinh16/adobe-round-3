@@ -36,7 +36,7 @@ const FilterControls = ({
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value)}
-          className="w-full appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+          className="w-full appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200"
         >
           {sortOptions.map(option => (
             <option key={option.value} value={option.value}>

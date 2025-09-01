@@ -38,7 +38,7 @@ const FileDropdown = ({
               onClick={(e) => onAIDetection(e, file)}
               className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center space-x-2 transition-colors"
             >
-              <Brain className="w-4 h-4 text-blue-600" />
+              <Brain className="w-4 h-4 text-red-600" />
               <span className="text-gray-700">AI Check</span>
             </button>
             

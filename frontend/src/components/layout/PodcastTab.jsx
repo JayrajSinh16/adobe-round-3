@@ -230,7 +230,7 @@ const PodcastTab = ({
                 animate={{ rotate: 360 }}
                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
               >
-                <div className="w-full h-full border-4 border-blue-100 rounded-full" />
+                <div className="w-full h-full border-4 border-red-100 rounded-full" />
                 <div className="absolute top-0 left-0 w-full h-full border-4 border-transparent border-t-[#B91C1C] rounded-full" />
               </motion.div>
               

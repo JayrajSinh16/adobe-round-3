@@ -74,7 +74,7 @@ const InsightsTab = ({ onInsightClick, insightsData, insightsError, insightsLoad
           return (
           <motion.article
             key={index}
-            className="group relative overflow-hidden rounded-3xl cursor-pointer"
+            className="group relative overflow-hidden rounded-xl cursor-pointer"
             initial={{ opacity: 0, y: 30, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{
@@ -91,11 +91,8 @@ const InsightsTab = ({ onInsightClick, insightsData, insightsError, insightsLoad
             }}
             onClick={() => onInsightClick(insight)}
             style={{
-              background: `linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(250, 250, 249, 0.9) 50%, rgba(243, 244, 246, 0.7) 100%)`,
-              backdropFilter: "blur(20px) saturate(150%)",
               border: `1px solid ${style.border}`,
-              boxShadow:
-                "0 25px 50px rgba(26, 26, 26, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.1)",
+              
             }}
           >
             {" "}
