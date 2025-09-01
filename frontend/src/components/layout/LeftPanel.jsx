@@ -120,17 +120,15 @@ const LeftPanel = ({
         initial={{ opacity: 0, x: -21 }}
         animate={{ opacity: 1, x: 0, width: leftPanelCollapsed ? '80px' : '400px' }}
         variants={containerVariants}
-        transition={{ ...goldenTransition, duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-        className="flex-shrink-0 bg-white/90 backdrop-blur-sm border-r border-[#E5E7EB]/20 flex flex-col shadow-xl relative overflow-hidden"
+        transition={{ ...goldenTransition, duration: 0.4, ease: "easeOut" }}
+        className="flex-shrink-0 bg-white border-r border-gray-100 flex flex-col relative overflow-hidden"
         style={{
-          backdropFilter: 'blur(20px) saturate(180%)',
-          borderImage: 'linear-gradient(180deg, rgba(229, 231, 235, 0.3), rgba(229, 231, 235, 0.1)) 1',
           minWidth: leftPanelCollapsed ? '80px' : '400px',
           maxWidth: leftPanelCollapsed ? '80px' : '400px',
         }}
       >
         {/* Header */}
-        <div className={`py-2 ${leftPanelCollapsed ? 'px-2' : 'pl-6 pr-2'} border-b border-[#E5E7EB]/20 flex items-center justify-between relative`}>
+        <div className={`py-3 ${leftPanelCollapsed ? 'px-2' : 'pl-6 pr-2'} border-b border-gray-100 flex items-center justify-between relative`}>
           <AnimatePresence mode="wait">
             {!leftPanelCollapsed && (
               <motion.div
@@ -141,21 +139,20 @@ const LeftPanel = ({
                 transition={{ duration: 0.3 }}
                 className="flex-1"
               >
-                <div className="flex items-center justify-between mt-6 ">
-                  <h3 className="text-[26px] font-bold text-[#1A1A1A] tracking-tight">Document Library</h3>
+                <div className="flex items-center justify-between mt-4">
+                  <h3 className="text-xl font-semibold text-gray-900">Document Library</h3>
                   <motion.button
                     onClick={handleUploadClick}
-                    className="group relative p-3 bg-gradient-to-r from-[#DC2626] to-[#B91C1C] text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-                    whileHover={{ scale: 1.05, rotate: 90 }}
-                    whileTap={{ scale: 0.95 }}
+                    className="p-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     aria-label="Upload new documents"
                   >
-                    <Plus className="w-5 h-5 transition-transform duration-300" />
-                    <div className="absolute inset-0 bg-white/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <Plus className="w-4 h-4" />
                   </motion.button>
                 </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-[16px] text-[#1A1A1A] opacity-60 font-medium">
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-sm text-gray-500">
                     {filteredFiles.length} document{filteredFiles.length !== 1 ? 's' : ''}
                   </p>
                 </div>
@@ -165,15 +162,14 @@ const LeftPanel = ({
 
           <motion.button
             onClick={handleToggleLeftPanel}
-            className={`p-3 rounded-xl hover:bg-[#E5E7EB]/50 transition-all duration-300 relative group ${leftPanelCollapsed ? 'w-full flex justify-center' : ''}`}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            className={`px-2 py-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 ${leftPanelCollapsed ? 'w-full flex justify-center' : ''}`}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             aria-label={leftPanelCollapsed ? 'Expand library' : 'Collapse library'}
           >
             <ChevronLeft
-              className={`w-5 h-5 transition-all duration-500 ${leftPanelCollapsed ? 'rotate-180 text-[#DC2626]' : 'text-[#1A1A1A]'}`}
+              className={`w-4 h-4 transition-transform duration-200 ${leftPanelCollapsed ? 'rotate-180 text-red-500' : 'text-gray-600'}`}
             />
-            <div className="absolute inset-0 bg-[#DC2626]/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </motion.button>
         </div>
 
@@ -185,29 +181,29 @@ const LeftPanel = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ delay: 0.1, duration: 0.3 }}
-              className="px-6 border-b border-[#E5E7EB]/20 space-y-4"
+              className="px-6 py-3 border-b border-gray-200"
             >
-              <div className="flex items-center space-x-1 bg-[#F3F4F6] rounded-xl p-1">
+              <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
                 <motion.button
                   onClick={() => handleSearchModeChange('filename')}
-                  className={`flex-1 flex items-center justify-center space-x-2 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-300 ${
-                    searchMode === 'filename' ? 'bg-white text-[#1A1A1A] shadow-sm' : 'text-[#1A1A1A] opacity-60 hover:opacity-100'
+                  className={`flex-1 flex items-center justify-center space-x-2 py-2 px-3 rounded-md text-sm font-medium transition-colors duration-200 ${
+                    searchMode === 'filename' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
                   }`}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
                 >
                   <File className="w-4 h-4" />
                   <span>Filename</span>
                 </motion.button>
                 <motion.button
                   onClick={() => handleSearchModeChange('semantic')}
-                  className={`flex-1 flex items-center justify-center space-x-2 py-2 px-3 rounded-lg text-sm font-medium transition-all duration-300 ${
+                  className={`flex-1 flex items-center justify-center space-x-2 py-2 px-3 rounded-md text-sm font-medium transition-colors duration-200 ${
                     searchMode === 'semantic'
-                      ? 'bg-gradient-to-r from-[#DC2626] to-[#B91C1C] text-white shadow-sm'
-                      : 'text-[#1A1A1A] opacity-60 hover:opacity-100'
+                      ? 'bg-red-500 text-white shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
                   }`}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
                 >
                   <Brain className="w-4 h-4" />
                   <span>Semantic</span>

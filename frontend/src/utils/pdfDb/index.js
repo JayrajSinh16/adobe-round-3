@@ -52,6 +52,3 @@ export {
   PDF_DB_CONFIG,
   PDF_MIME_TYPE
 } from './config.js';
-
-// Legacy compatibility - re-export with original names
-export { dataUrlToBlob } from './validators.js';
