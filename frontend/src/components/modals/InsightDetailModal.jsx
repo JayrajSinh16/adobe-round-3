@@ -200,15 +200,15 @@ const InsightDetailModal = ({ insight, isOpen, onClose }) => {
         icon: Lightbulb,
         component: 'DidYouKnow'
       },
-      DidYouKnow: {
-        label: 'Did You Know?',
-        description: 'Fascinating discoveries from your documents',
-        color: '#059669',
-        bgGradient: 'from-emerald-50 via-emerald-100 to-white',
-        borderColor: 'border-emerald-200',
-        icon: Lightbulb,
-        component: 'DidYouKnow'
-      }
+      // DidYouKnow: {
+      //   label: 'Did You Know?',
+      //   description: 'Fascinating discoveries from your documents',
+      //   color: '#059669',
+      //   bgGradient: 'from-emerald-50 via-emerald-100 to-white',
+      //   borderColor: 'border-emerald-200',
+      //   icon: Lightbulb,
+      //   component: 'DidYouKnow'
+      // }
     };
 
     // Enhanced fallback logic with better type detection
