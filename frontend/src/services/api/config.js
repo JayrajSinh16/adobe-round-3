@@ -4,9 +4,24 @@
  */
 import axios from 'axios';
 
+// Resolve API base URL with safe defaults for production and dev
+const resolveBaseURL = () => {
+  try {
+    const raw = import.meta?.env?.VITE_API_BASE_URL;
+    const envBase = typeof raw === 'string' ? raw.trim() : '';
+    // If explicitly provided, respect it (supports absolute like https://api.example.com or relative '/')
+    if (envBase) return envBase === '/' ? '' : envBase;
+    // Default to same-origin relative requests (works with Vite dev proxy and production on same host)
+    return '';
+  } catch {
+    // Fallback: same-origin
+    return '';
+  }
+};
+
 // API Configuration
 export const API_CONFIG = {
-  baseURL: import.meta?.env?.VITE_API_BASE_URL?.trim?.() || 'http://localhost:8080',
+  baseURL: resolveBaseURL(),
   timeout: parseInt(import.meta?.env?.VITE_API_TIMEOUT) || 30000,
   maxRetries: 3,
   retryDelay: 1000,

@@ -481,7 +481,7 @@ const PDFAnalysisWorkspace = () => {
         const documentsResponse = await listDocuments();
         const document = documentsResponse.documents.find(doc => doc.filename === documentName);
         if (!document) { toast.error(`Document "${documentName}" not found`); return; }
-        const pdfUrl = `http://localhost:8080/static/pdfs/${encodeURIComponent(documentName)}`;
+  const pdfUrl = `/static/pdfs/${encodeURIComponent(documentName)}`;
         const response = await fetch(pdfUrl);
         if (!response.ok) { throw new Error(`Failed to fetch PDF: ${response.statusText}`); }
         const blob = await response.blob();
