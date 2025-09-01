@@ -22,7 +22,7 @@ const InlinePDFViewer = ({ file, onSelection, onGenerateInsights, onApisReady, c
   const gestureIdRef = useRef(0);            // increments every new selection gesture (mousedown)
   const emittedGestureIdRef = useRef(-1);    // gesture id for which we already emitted
 
-  const ADOBE_CLIENT_ID = clientId || 'c0598f2728bf431baecd93928d677adc';
+  const ADOBE_CLIENT_ID = clientId || 'bf71c383d62846369129dd1c76764186';
 
   const cleanup = useCallback(() => {
     if (mouseupTimeoutRef.current) {

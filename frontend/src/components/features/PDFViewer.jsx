@@ -5,7 +5,7 @@ import { X, Brain, Loader2 } from 'lucide-react';
 
 const PdfViewerModal = ({ file, isVisible, onClose }) => {
   const viewerRef = useRef(null);
-  const ADOBE_CLIENT_ID = "c0598f2728bf431baecd93928d677adc";
+  const ADOBE_CLIENT_ID ="bf71c383d62846369129dd1c76764186";
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [adobeView, setAdobeView] = useState(null);
