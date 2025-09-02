@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronDown, ChevronUp, Network, Lightbulb, Headphones, Sparkles } from 'lucide-react';
 import InsightsTab from './InsightsTab';
 import PodcastTab from './PodcastTab';
+import ConnectionsSummaryModal from '../modals/ConnectionsSummaryModal';
 
 const RightPanel = ({
   rightPanelVisible,
@@ -29,6 +30,8 @@ const RightPanel = ({
   const goldenRatio = 1.618;
   const premiumEasing = [0.25, 0.46, 0.45, 0.94];
   const [isSelectedTextExpanded, setIsSelectedTextExpanded] = useState(false);
+  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
+  
   const toText = useCallback((v, fallback = '') => {
     if (v == null) return fallback;
     if (typeof v === 'string') return v;
@@ -298,6 +301,29 @@ const RightPanel = ({
                       exit={{ opacity: 0, y: -20 }}
                       transition={{ duration: 0.5, ease: premiumEasing }}
                       className="space-y-6">
+                      
+                      {/* Summary Section Header */}
+                      {connectionsData?.summary && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.4, ease: premiumEasing }}
+                          className="flex items-center justify-between mb-4"
+                        >
+                          <div className="text-xs font-medium text-[#1A1A1A] opacity-50 uppercase tracking-wide">
+                            Connected Source
+                          </div>
+                          <motion.button
+                            onClick={() => setIsSummaryModalOpen(true)}
+                            className="px-3 py-1.5 text-xs font-medium text-[#DC2626] bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 rounded-lg hover:bg-gradient-to-r hover:from-red-100 hover:to-rose-100 transition-all duration-300 flex items-center space-x-1"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            <span>Summary</span>
+                          </motion.button>
+                        </motion.div>
+                      )}
+                      
                       {/* Elegant connection cards */}
                       <div className="space-y-4">
                         {connectionsError && (
@@ -352,7 +378,7 @@ const RightPanel = ({
                               </motion.blockquote>
                               <footer className="space-y-2">
                                 <div className="text-xs font-medium text-[#1A1A1A] opacity-50 uppercase tracking-wide mb-3">
-                                  Connected Source
+                                  Source Document
                                 </div>
                                 <motion.div
                                   className="flex items-center justify-between p-3 bg-[#FAFAF9]/40 rounded-lg border border-[#E5E7EB]/20 hover:bg-[#DC2626]/5 transition-all duration-300"
@@ -422,6 +448,14 @@ const RightPanel = ({
           </main>
         </motion.aside>
       )}
+      
+      {/* Connections Summary Modal */}
+      <ConnectionsSummaryModal
+        isOpen={isSummaryModalOpen}
+        onClose={() => setIsSummaryModalOpen(false)}
+        summary={connectionsData?.summary}
+        documentName={selectedTextContext?.documentName}
+      />
     </AnimatePresence>
   );
 };
