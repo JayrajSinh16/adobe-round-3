@@ -380,7 +380,7 @@ export default function LandingPage() {
           {/* Bottom Bar */}
           <div className="mt-8 pt-8 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center">
             <p className="text-gray-500 text-sm">
-              © 2025 DocAI. All rights reserved.
+              © 2025 Intellidoc-studio. All rights reserved.
             </p>
             <p className="text-gray-500 text-sm mt-2 sm:mt-0">
               Built with ❤️ for intelligent document processing
