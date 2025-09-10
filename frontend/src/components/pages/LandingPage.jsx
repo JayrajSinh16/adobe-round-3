@@ -56,26 +56,6 @@ export default function LandingPage() {
     {
       icon: (
         <svg className="w-6 h-6 text-[#DC2626]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-        </svg>
-      ),
-      title: "AI-Powered Document Summary",
-      description: "Generate comprehensive summaries of your PDF documents with key highlights and insights. Export summaries as downloadable PDFs with professional formatting.",
-      available: true
-    },
-    {
-      icon: (
-        <svg className="w-6 h-6 text-[#DC2626]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-        </svg>
-      ),
-      title: "AI vs Human Content Detection",
-      description: "Advanced analysis to determine what percentage of your document content is AI-generated versus human-written, with detailed confidence scores and insights.",
-      available: true
-    },
-    {
-      icon: (
-        <svg className="w-6 h-6 text-[#DC2626]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
       ),
@@ -113,7 +93,6 @@ export default function LandingPage() {
       title: "YouTube Recommendations",
       description: "Get personalized YouTube video recommendations based on your document content and analysis results.",
       available: true,
-      showMore: true
     },
     {
       icon: (
@@ -124,7 +103,6 @@ export default function LandingPage() {
       title: "Advanced Search",
       description: "Powerful semantic search capabilities to find specific information across all your analyzed documents.",
       available: true,
-      showMore: true
     },
     {
       icon: (
@@ -136,6 +114,28 @@ export default function LandingPage() {
       description: "Comprehensive analytics and visualizations to track document processing metrics and insights over time.",
       comingSoon: true,
       showMore: true
+    },
+    {
+      icon: (
+        <svg className="w-6 h-6 text-[#DC2626]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+        </svg>
+      ),
+      title: "AI-Powered Document Summary",
+      description: "Generate comprehensive summaries of your PDF documents with key highlights and insights. Export summaries as downloadable PDFs with professional formatting.",
+      comingSoon:true,
+      showMore:true
+    },
+    {
+      icon: (
+        <svg className="w-6 h-6 text-[#DC2626]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+      ),
+      title: "AI vs Human Content Detection",
+      description: "Advanced analysis to determine what percentage of your document content is AI-generated versus human-written, with detailed confidence scores and insights.",
+      comingSoon:true,
+      showMore:true
     },
     {
       icon: (
@@ -165,7 +165,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-gradient-to-br from-white via-gray-50/30 to-rose-50/20">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-gradient-to-br from-[#DC2626] to-[#EF4444] rounded-lg flex items-center justify-center">
@@ -225,7 +225,7 @@ export default function LandingPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 max-w-2xl mx-auto">
-              <StatsCard number="5" label="AI Models" suffix="+" />
+              <StatsCard number="2" label="AI Models" suffix="+" />
               <StatsCard number="99" label="Accuracy" suffix="%" />
               <StatsCard number="10" label="Languages" suffix="+" />
               <StatsCard number="24/7" label="Processing" />
@@ -380,7 +380,7 @@ export default function LandingPage() {
           {/* Bottom Bar */}
           <div className="mt-8 pt-8 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center">
             <p className="text-gray-500 text-sm">
-              © 2025 DocAI. All rights reserved.
+              © 2025 Intellidoc-studio. All rights reserved.
             </p>
             <p className="text-gray-500 text-sm mt-2 sm:mt-0">
               Built with ❤️ for intelligent document processing

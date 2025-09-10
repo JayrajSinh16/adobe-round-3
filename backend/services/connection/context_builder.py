@@ -69,23 +69,22 @@ class ContextBuilder:
     
     def create_simplified_prompt(self, selected_text: str, pdf_context: str, source_pdf_name: str) -> str:
         """Create a simplified prompt for retry attempts"""
-        return f"""Find 2-3 connections for this text across different PDF documents.
+        return f"""Find EXACTLY 4 connections for this text: 3 from different PDFs + 1 from source PDF.
 
 Selected text: "{selected_text}"
 Source document: {source_pdf_name}
 
 {pdf_context}
 
-Return ONLY a JSON array like this:
+Return ONLY a JSON array with EXACTLY 4 connections:
 [
-  {{
-    "title": "Section Title from PDF outline",
-    "type": "concept",
-    "document": "Different PDF filename",
-    "pages": [1],
-    "snippet": "Brief description of connection",
-    "strength": "medium"
-  }}
+  {{"title": "Section from Other PDF 1","type": "concept","document": "OtherPDF1.pdf","pages": [1],"snippet": "Brief relevant description","strength": "medium"}},
+  {{"title": "Section from Other PDF 2","type": "comparison","document": "OtherPDF2.pdf","pages": [2],"snippet": "Brief relevant description","strength": "medium"}},
+  {{"title": "Section from Other PDF 3","type": "example","document": "OtherPDF3.pdf","pages": [3],"snippet": "Brief relevant description","strength": "medium"}},
+  {{"title": "Related Section","type": "internal","document": "{source_pdf_name}","pages": [X],"snippet": "Internal cross-reference","strength": "low"}}
 ]
 
-Focus on documents OTHER than {source_pdf_name}."""
+Requirements:
+- First 3: Different PDF documents (NOT {source_pdf_name})
+- Fourth: From {source_pdf_name} with type "internal"
+- Use exact headings from PDF outlines as titles"""

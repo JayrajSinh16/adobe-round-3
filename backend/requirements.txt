@@ -35,3 +35,4 @@ openai
 # Utilities
 python-dotenv
 httpx
+demjson3

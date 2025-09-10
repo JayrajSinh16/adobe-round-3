@@ -5,6 +5,9 @@ Fallback generator module for creating intelligent fallback connections.
 from typing import List, Dict
 from models import DocumentConnection
 from services.document_service import document_service
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class FallbackGenerator:
@@ -17,6 +20,7 @@ class FallbackGenerator:
         other_docs = [doc for doc in all_documents if doc.filename != source_pdf_name]
         
         if not other_docs:
+            logger.warning("FallbackGenerator: No other documents available for dynamic fallback")
             return connections
         
         # Use the intelligent template generation
@@ -43,15 +47,17 @@ class FallbackGenerator:
                 )
                 connections.append(connection)
             except Exception as e:
-                print(f"Error creating connection from template: {e}")
+                logger.error(f"FallbackGenerator: Error creating connection from template: {e}")
+                # Skip invalid template
                 continue
-        
+
+        logger.info(f"FallbackGenerator: Created {len(connections)} dynamic fallback connections")
         return connections
     
     def create_intelligent_fallbacks(self, selected_text: str, source_pdf_name: str, existing_count: int) -> List[DocumentConnection]:
         """Create intelligent fallback connections when needed"""
         connections = []
-        needed = max(0, 2 - existing_count)  # Ensure at least 2 total connections
+        needed = max(0, 4 - existing_count)  # Ensure at least 4 total connections
         
         if needed <= 0:
             return connections
@@ -59,9 +65,10 @@ class FallbackGenerator:
         all_documents = document_service.get_all_documents()
         other_docs = [doc for doc in all_documents if doc.filename != source_pdf_name]
         
-        # Create minimal fallback connections
-        for i in range(min(needed, len(other_docs))):
-            doc = other_docs[i]
+        # Create external fallback connections first
+        external_needed = min(needed, 3, len(other_docs))
+        for i in range(external_needed):
+            doc = other_docs[i] if i < len(other_docs) else other_docs[0]
             
             connection = DocumentConnection(
                 title="Related Content",
@@ -73,4 +80,18 @@ class FallbackGenerator:
             )
             connections.append(connection)
         
+        # Create internal connection if needed and we have remaining slots
+        if len(connections) < needed:
+            internal_connection = DocumentConnection(
+                title="Related Section",
+                type="internal", 
+                document=source_pdf_name,
+                pages=[1],
+                snippet="Additional context within the same document.",
+                strength="low"
+            )
+            connections.append(internal_connection)
+        
+        if connections:
+            logger.info(f"FallbackGenerator: Added {len(connections)} intelligent fallback connections (needed={needed})")
         return connections
