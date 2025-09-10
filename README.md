@@ -13,6 +13,8 @@
 
 **🎉 Complete PDF Processing, AI Insights & Podcast Generation Platform**
 
+**🎬 [Watch Demo Video](./Demo_Video.mp4) for Quick Feature Overview**
+
 </div>
 
 ---

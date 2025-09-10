@@ -1,13 +1,6 @@
 import os
-import json
-import uuid
 from typing import List, Dict, Any, Optional
-from datetime import datetime
-from pathlib import Path
-import aiofiles
 from fastapi import UploadFile
-from config import settings
-from utils import extract_pdf_info, generate_pdf_outline
 from models import DocumentInfo
 
 # Import modular components

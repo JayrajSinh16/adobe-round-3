@@ -1,7 +1,6 @@
 import json
 import time
-from typing import List, Dict, Any, Optional
-from config import settings
+from typing import List, Dict,  Optional
 from utils import get_llm_client
 from services.document_service import document_service
 from models import DocumentConnection, ConnectionResponse

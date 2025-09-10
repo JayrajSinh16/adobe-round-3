@@ -83,7 +83,6 @@ class LLMClient:
         
         try:
             # Remove conservative token limiting - use the requested max_tokens directly
-            # Gemini 1.5 Flash supports up to 8,192 output tokens
             actual_tokens = min(max_tokens, 8192)  # Use Gemini's actual limit
             
             # Create model with optional system instruction

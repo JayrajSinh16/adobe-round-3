@@ -6,29 +6,12 @@ Logic remains in submodules under utils/llm_client/.
 from typing import Dict, Any, List
 
 # Keep original imports available to callers
-from .core_llm import chat_with_llm, get_llm_client  # noqa: F401
 from .task_modules import summary_generator, insight_analyzer, content_generator  # noqa: F401
 
 # Re-export functions from submodules to keep the same API
-from .llm_client.context import get_all_pdf_outlines, format_outlines_for_context  # noqa: F401
-from .llm_client.summaries import generate_snippet_summary, generate_executive_summary  # noqa: F401
 from .llm_client.insights import (
-    generate_insights_multi_call,
     generate_insights,
-    get_insight_generation_stats,
-)  # noqa: F401
-from .llm_client.parsing import (  # noqa: F401
-    _parse_insights_response_robust,
-    _validate_and_fix_insights,
-    _extract_insights_from_text,
-    _generate_minimal_insights_from_context,
-)
-from .llm_client.content import generate_podcast_script  # noqa: F401
-from .llm_client.analysis import (
-    analyze_document_structure,
-    extract_key_concepts,
-    compare_documents,
-)  # noqa: F401
+) # noqa: F401
 
 
 def get_task_modules_info() -> Dict[str, List[str]]:

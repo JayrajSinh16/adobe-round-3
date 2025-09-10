@@ -1,7 +1,6 @@
 import fitz  # PyMuPDF
 import os
-from typing import Dict, List, Any, Optional
-import json
+from typing import Dict,  Any, Optional
 from outline_engine.rule_engine import SmartRuleEngine
 
 _outline_engine_instance: Optional[SmartRuleEngine] = None
